@@ -1,0 +1,14 @@
+import React from 'react';
+import type { SVGProps } from 'react';
+
+export function TeenyiconsSchoolOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 15 15" {...props}>
+      <path
+        fill="none"
+        stroke="currentColor"
+        d="m7.5 4.5l4 2v8h-8v-8zm0 0V0M0 14.5h15m-13.5 0v-6h2m10 6v-6h-2m-5 6v-3h2v3m-1-14h3v2h-3m0 7a1 1 0 1 1 0-2a1 1 0 0 1 0 2Z"
+      ></path>
+    </svg>
+  );
+}

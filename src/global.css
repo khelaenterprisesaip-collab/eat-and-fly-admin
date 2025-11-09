@@ -1,0 +1,137 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+
+@import "tailwindcss";
+/* @plugin "daisyui"; */
+
+.one-liner {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+a {
+  color: #334735;
+}
+
+.rich-text p {
+  padding: 0;
+  margin: 0;
+}
+
+.css-191l734-MuiInputBase-input-MuiOutlinedInput-input.Mui-disabled {
+  opacity: 0.6;
+  -webkit-text-fill-color: #666e7e !important;
+}
+
+.css-1d3q24g-MuiInputBase-input-MuiOutlinedInput-input.Mui-disabled {
+  opacity: 1;
+  -webkit-text-fill-color: #666e7e !important;
+}
+
+/* subscription modal css */
+
+.pricing-content {
+  position: relative;
+}
+.pricing_design {
+  position: relative;
+  margin: 0px 15px;
+}
+.pricing_design .single-pricing {
+  background: #554c86;
+  padding: 60px 40px;
+  border-radius: 30px;
+  box-shadow: 0 10px 40px -10px rgba(0, 64, 128, 0.2);
+  position: relative;
+  z-index: 1;
+}
+.pricing_design .single-pricing:before {
+  content: "";
+  background-color: #fff;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px 18px 190px 18px;
+  border: 1px solid #eee;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: -1;
+}
+.price-head {
+}
+.price-head h2 {
+  font-size: 30px;
+  font-weight: 600;
+}
+.price-head h1 {
+  font-weight: 600;
+  margin-top: 30px;
+  margin-bottom: 5px;
+  font-family: "Poppins", sans-serif;
+  font-size: 40px;
+}
+.price-head span {
+  font-size: 20px;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.single-pricing ul {
+  list-style: none;
+  margin-top: 30px;
+}
+.single-pricing ul li {
+  line-height: 36px;
+}
+.single-pricing ul li i {
+  background: #554c86;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  border-radius: 30px;
+  font-size: 11px;
+  text-align: center;
+  line-height: 20px;
+  margin-right: 6px;
+}
+.pricing-price {
+}
+
+.price_btn {
+  background: #554c86;
+  padding: 10px 30px;
+  color: #fff;
+  display: inline-block;
+  margin-top: 20px;
+  border-radius: 2px;
+  -webkit-transition: 0.3s;
+  transition: 0.3s;
+}
+.price_btn:hover {
+  background: #0aa1d6;
+}
+a {
+  text-decoration: none;
+}
+
+.section-title {
+  margin-bottom: 60px;
+}
+.text-center {
+  text-align: center !important;
+}
+
+.section-title h2 {
+  font-size: 45px;
+  font-weight: 600;
+  margin-top: 0;
+  position: relative;
+  text-transform: capitalize;
+}
+
+.css-inqqk3-MuiInputBase-root-MuiInput-root::before {
+  border: 0;
+}
