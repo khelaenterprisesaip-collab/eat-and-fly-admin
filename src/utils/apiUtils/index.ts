@@ -5,7 +5,7 @@ export const hostname = () => {
   let hostUrl = "";
   switch (window.location.hostname) {
     case "localhost":
-      hostUrl = "https://api.khelaenterprises.com/api";
+      hostUrl = "http://localhost:4001/api";
       break;
 
     default:
