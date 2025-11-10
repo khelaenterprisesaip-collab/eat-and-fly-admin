@@ -65,7 +65,7 @@ const pages: any = {
     },
     {
       id: "PRODUCT",
-      title: <FormattedMessage id="product" />,
+      title: <FormattedMessage id="Product" />,
       type: "item",
       url: "/products",
       icon: icons.staff,
@@ -81,7 +81,7 @@ const pages: any = {
     },
     {
       id: "INVOICES",
-      title: <FormattedMessage id="invoices" />,
+      title: <FormattedMessage id="Invoices" />,
       type: "item",
       url: "/invoices",
       icon: icons.invoice,
