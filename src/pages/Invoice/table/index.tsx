@@ -226,7 +226,7 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   ]);
 
   const table = useReactTable({
-    data: useMemo(() => [], []),
+    data: useMemo(() => invoiceData?.data || [], [invoiceData]),
     columns,
     state: { columnVisibility },
     onColumnVisibilityChange: setColumnVisibility,
