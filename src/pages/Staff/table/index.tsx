@@ -52,6 +52,7 @@ import {
 import { Edit, LockKeyhole, Send } from "lucide-react";
 import { setupPassword } from "services/auth";
 import OtherModal from "../../../components/ui/Modal";
+import { airportCities } from "../addStaff/constant";
 
 const StaffTable = ({ value, searchText, drawer, setDrawer }: any) => {
   const theme = useTheme();
@@ -242,6 +243,10 @@ const StaffTable = ({ value, searchText, drawer, setDrawer }: any) => {
         header: "Airport",
         accessorKey: "airport",
         minSize: 180,
+        meta: {
+          filterVariant: "select",
+          filterOptions: airportCities,
+        },
         cell: (cell: any) => {
           return (
             <Box display={"flex"} justifyContent={"center"}>
