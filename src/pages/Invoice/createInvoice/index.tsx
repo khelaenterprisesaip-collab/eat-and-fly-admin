@@ -43,6 +43,7 @@ import { openSnackbar } from "api/snackbar";
 import { SnackbarProps } from "types/snackbar";
 import { InfoCircle } from "iconsax-react";
 import { useNavigate } from "react-router";
+import useAuth from "hooks/useAuth";
 
 const MENU_ITEMS = [
   {
@@ -87,8 +88,17 @@ const InvoiceSchema = z.object({
 export type InvoiceFormType = z.infer<typeof InvoiceSchema>;
 export default function CreateInvoice() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isMd = useMediaQuery((theme: any) => theme.breakpoints.up("sm"));
   const createInvoice = useCreateInvoice();
+
+  const {
+    data: productData,
+    refetch: refetchStaff,
+    isFetching,
+  }: any = useGetProduct({ query: { airport: user?.airport } });
+
+  console.log("productData", productData);
 
   const { register, handleSubmit, control, setValue, watch } =
     useForm<InvoiceFormType>({
