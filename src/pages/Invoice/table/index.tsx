@@ -34,6 +34,7 @@ import { useGetProduct } from "hooks/product/query";
 import { DeleteIcon } from "assets/svg/Delete";
 import ConfirmModal from "components/ui/confrimModal";
 import { deleteProduct } from "services/product";
+import { useGetInvoices } from "hooks/Invoice/query";
 
 const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   const theme = useTheme();
@@ -77,7 +78,7 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
     data: invoiceData,
     refetch: refetchInvoice,
     isFetching,
-  }: any = useGetProduct({ query: { ...query } });
+  }: any = useGetInvoices({ query: { ...query } });
 
   const options = (rowData: any) => [
     {
