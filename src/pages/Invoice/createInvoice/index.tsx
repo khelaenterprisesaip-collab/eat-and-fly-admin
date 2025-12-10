@@ -89,6 +89,7 @@ export type InvoiceFormType = z.infer<typeof InvoiceSchema>;
 export default function CreateInvoice() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  console.log("sasdasnm");
   const isMd = useMediaQuery((theme: any) => theme.breakpoints.up("sm"));
   const createInvoice = useCreateInvoice();
 
