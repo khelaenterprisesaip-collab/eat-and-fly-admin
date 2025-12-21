@@ -112,33 +112,21 @@ export default function NavGroup({
   >(null);
   const [currentItem, setCurrentItem] = useState(item);
 
-  const { permission }: any = useRole();
+  // const { permission }: any = useRole();
   const { user, Tenant } = useAuth();
 
   function filterItemsByPermissions(
     items: any[] | undefined,
-    permissions: any,
     role: any,
     isTenant: boolean | undefined
   ): any {
     if (!items) return [];
 
     const permissionMap: any = {
-      YARDS: permissions?.view_yard || false,
-      DISPATCH: permissions?.view_order || false,
-      CONSIGNEES: permissions?.view_consignors || false,
-      CUSTOMERS: permissions?.view_customer || false,
-      TRUCKS: permissions?.view_truck || false,
-      CHASSIS: permissions?.view_chassis || false,
-      STAFF: isTenant,
-      PORTS: permission?.view_port || false,
-      DRIVERS: permission?.view_driver || false,
-      INVOICE: isTenant,
+      STAFF: role === "admin" || false,
     };
-    if (isTenant) {
-      return items;
-    }
-    if (!isTenant && role) {
+
+    if (role) {
       return items.filter((item) => {
         return permissionMap[item?.id] !== false;
       });
@@ -146,7 +134,6 @@ export default function NavGroup({
   }
   const filteredChildren: any = filterItemsByPermissions(
     item?.children,
-    permission,
     user?.role,
     user?.isTenant
   );
@@ -164,7 +151,6 @@ export default function NavGroup({
         setCurrentItem(item);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item, lastItem, downLG]);
 
   const checkOpenForParent = (child: NavItemType[], id: string) => {
@@ -206,7 +192,6 @@ export default function NavGroup({
   useEffect(() => {
     checkSelectedOnload(currentItem);
     if (openMini) setAnchorEl(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, currentItem]);
 
   const handleClick = (event: MouseEvent<HTMLElement> | undefined) => {

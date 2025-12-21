@@ -25,12 +25,6 @@ function RoleAccess2({
     }
   };
 
-  // useEffect(() => {
-  //   if (user && typeof Tenant === "boolean" && !Tenant) {
-  //     handleLogout();
-  //   }
-  // }, [user, logout, navigate]);
-
   if (loading) {
     return <Loader />;
   }
@@ -38,10 +32,6 @@ function RoleAccess2({
   const isAuthorized = viewPermission
     ? permission?.[viewPermission] || ["allow_both"].includes(viewPermission)
     : false;
-
-  // if (!isAuthorized) {
-  //   return <Navigate to="/404" />;
-  // }
 
   return <>{children}</>;
 }

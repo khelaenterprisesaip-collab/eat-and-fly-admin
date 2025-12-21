@@ -72,28 +72,12 @@ const pages: any = {
       activeIcon: icons.staff,
     },
     {
-      id: "CUSTOMERS",
-      title: <FormattedMessage id="Customers" />,
-      type: "item",
-      url: "/customers",
-      icon: icons.customer,
-      activeIcon: icons.customer,
-    },
-    {
       id: "INVOICES",
       title: <FormattedMessage id="Invoices" />,
       type: "item",
       url: "/invoices",
       icon: icons.invoice,
       activeIcon: icons.invoice,
-    },
-    {
-      id: "CHASSIS",
-      title: <FormattedMessage id="Chassis" />,
-      type: "item",
-      url: "/chassis",
-      icon: icons.chassis,
-      activeIcon: icons.chassis,
     },
   ],
 };

@@ -58,13 +58,13 @@ export default function App() {
           <ScrollTop>
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
-                <RoleProvider>
-                  <>
-                    <RouterProvider router={router} />
-                    {/* <Customization /> */}
-                    <Snackbar />
-                  </>
-                </RoleProvider>
+                {/* <RoleProvider> */}
+                <>
+                  <RouterProvider router={router} />
+                  {/* <Customization /> */}
+                  <Snackbar />
+                </>
+                {/* </RoleProvider> */}
               </AuthProvider>
             </QueryClientProvider>
           </ScrollTop>

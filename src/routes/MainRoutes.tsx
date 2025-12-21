@@ -74,54 +74,6 @@ const MainRoutes: any = {
 
     {
       path: "/",
-      element: <DashboardLayout allowPermission={"view_chassis"} />,
-
-      children: [
-        {
-          path: "chassis",
-          element: <ChassisMainPage />,
-        },
-        {
-          path: "/chassis/all",
-          element: <ChassisMainPage />,
-        },
-        {
-          path: "/chassis/laval",
-          element: <ChassisMainPage />,
-        },
-        {
-          path: "/chassis/dorval",
-          element: <ChassisMainPage />,
-        },
-
-        {
-          path: "chassis/add",
-          element: <AddChassis />,
-        },
-
-        {
-          path: "chassis/:chassis_id",
-          element: <AddChassis />,
-        },
-        {
-          path: "chassis/uploadCsv",
-          element: (
-            <BulkImport
-              title="Upload chassis csv"
-              subtitle={"chassis"}
-              validateService={ValidateToolCsv}
-              uploadCsv={UploadToolCsv}
-              redirectPath="/chassis"
-              csvTable={ToolCsvTable}
-              csvFile="chassis.csv"
-            />
-          ),
-        },
-      ],
-    },
-
-    {
-      path: "/",
       element: <DashboardLayout allowPermission={"allow_both"} />,
 
       children: [
@@ -163,19 +115,6 @@ const MainRoutes: any = {
           path: "products",
           element: <ProductMainPage />,
         },
-        // {
-        //   path: "/staff/active",
-        //   element: <ProductMainPage />,
-        // },
-
-        // {
-        //   path: "/staff/inactive",
-        //   element: <ProductMainPage />,
-        // },
-        // {
-        //   path: "/staff/awaiting",
-        //   element: <StaffMainPage />,
-        // },
 
         {
           path: "/product/add",

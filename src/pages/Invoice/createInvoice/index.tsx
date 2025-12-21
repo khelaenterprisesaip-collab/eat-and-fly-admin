@@ -762,14 +762,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Box,
   Typography,
   IconButton,
   Select,
   MenuItem,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Autocomplete,
   Stack,
   useMediaQuery,
@@ -785,113 +781,104 @@ import ThemeButton from "components/ui/Button";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router";
-import { InfoCircle } from "iconsax-react";
 import { openSnackbar } from "api/snackbar";
 import useAuth from "hooks/useAuth";
 import { useGetProduct } from "hooks/product/query";
 import { useCreateInvoice } from "hooks/Invoice/mutation";
+import { useEffect } from "react";
 
-// MENU ITEMS SAMPLE
-const MENU_ITEMS = [
-  { name: "WATER", rate: 66.67 },
-  { name: "COKE", rate: 60 },
-];
-
-// ------------------- OPTION A — EXACT IMAGE KEYS -------------------
 const InvoiceSchema = z.object({
-  "Bill No": z.string(),
-  Date: z.string(),
-  Shift: z.string(),
+  invoiceNumber: z.string(),
+  date: z.string(),
+  shift: z.string(),
 
-  Items: z.array(
+  items: z.array(
     z.object({
-      "Item Name": z.string(),
-      Qty: z.number(),
-      Rate: z.number(),
-      Amount: z.number(),
+      name: z.string(),
+      quantity: z.number(),
+      perUnitPrice: z.number(),
+      totalPrice: z.number(),
     })
   ),
 
-  "Sub Total": z.number(),
-  CGST: z.number(),
-  SGST: z.number(),
-  "Round-off Amount": z.number(),
-  "Grand Total": z.number(),
+  subTotal: z.number(),
+  taxPercentage: z.number(),
+  totalAmount: z.number(),
 
-  Payment: z.string(),
+  paymentMethod: z.enum(["cash", "card", "online"]),
 });
 
+type InvoiceFormType = z.infer<typeof InvoiceSchema>;
+
 export default function CreateInvoice() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const createInvoice = useCreateInvoice();
-  console.log("user", user);
-  const {
-    data: productData,
-    refetch: refetchStaff,
-    isFetching,
-  }: any = useGetProduct({ query: { airport: "jalandhar" } });
 
-  console.log("productData", productData);
+  const { data: productData }: any = useGetProduct({
+    query: { airport: user?.airport },
+  });
 
   const isMd = useMediaQuery((theme: any) => theme.breakpoints.up("sm"));
 
-  // ------------------- FORM SETUP -------------------
-  const { register, handleSubmit, control, setValue, watch } = useForm<any>({
-    resolver: zodResolver(InvoiceSchema),
-    defaultValues: {
-      "Bill No": "041225D/46",
-      Date: new Date().toISOString().split("T")[0],
-      Shift: "SHIFT-1",
-
-      Items: [],
-
-      "Sub Total": 0,
-      CGST: 0,
-      SGST: 0,
-      "Round-off Amount": 0,
-      "Grand Total": 0,
-
-      Payment: "CASH",
-    },
-  });
+  const { register, handleSubmit, control, setValue, watch } =
+    useForm<InvoiceFormType>({
+      resolver: zodResolver(InvoiceSchema),
+      defaultValues: {
+        invoiceNumber: "041225D/46",
+        date: new Date().toISOString().split("T")[0],
+        shift: "SHIFT-1",
+        items: [],
+        subTotal: 0,
+        taxPercentage: 5,
+        totalAmount: 0,
+        paymentMethod: "cash",
+      },
+    });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "Items",
+    name: "items",
   });
 
-  // ------------------- WATCH VALUES -------------------
-  const items = watch("Items");
+  const items = watch("items");
 
-  const subtotal = items.reduce(
-    (sum: any, it: any) => sum + it.Rate * it.Qty,
+  const subTotal = items.reduce(
+    (sum, it) => sum + it.perUnitPrice * it.quantity,
     0
   );
 
-  const cgst = subtotal * 0.025;
-  const sgst = subtotal * 0.025;
+  const taxPercentage = watch("taxPercentage");
+  const taxAmount = (subTotal * taxPercentage) / 100;
+  const totalAmount = subTotal + taxAmount;
 
-  const grandTotal = subtotal + cgst + sgst;
+  useEffect(() => {
+    setValue("subTotal", subTotal);
+    setValue("totalAmount", totalAmount);
+  }, [subTotal, totalAmount, setValue]);
 
-  // Auto-update totals
-  setValue("Sub Total", subtotal);
-  setValue("CGST", cgst);
-  setValue("SGST", sgst);
-  setValue("Grand Total", grandTotal);
+  const onSubmit = (data: InvoiceFormType) => {
+    const payload = {
+      invoiceNumber: data.invoiceNumber,
+      airport: user?.airport,
+      dateTime: Date.now(),
 
-  // ------------------- SUBMIT -------------------
-  const onSubmit = (data: any) => {
-    console.log("FINAL PAYLOAD EXACT KEYS:", data);
-    createInvoice
-      .mutateAsync({ body: { ...data, airport: user?.airport } })
-      ?.then((res) => {
-        console.log("res", res);
-      })
-      ?.catch((err) => {
-        console.log("err", err);
-      });
+      subTotal: data.subTotal,
+      taxPercentage: data.taxPercentage,
+      totalAmount: data.totalAmount,
+
+      status: "paid",
+
+      items: data.items.map((it) => ({
+        name: it.name,
+        quantity: it.quantity,
+        perUnitPrice: it.perUnitPrice,
+        totalPrice: it.totalPrice,
+      })),
+
+      paymentMethod: data.paymentMethod,
+    };
+
+    createInvoice.mutateAsync({ body: payload });
 
     openSnackbar({
       open: true,
@@ -904,91 +891,77 @@ export default function CreateInvoice() {
   return (
     <Container maxWidth="xl">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Stack direction="column" spacing={2} mb={2}>
+        <Stack spacing={2} mb={2}>
           <Typography variant={isMd ? "h3" : "h4"}>Create Invoice</Typography>
         </Stack>
 
         <Grid container spacing={3}>
-          {/* ---------------- LEFT SIDE FORM ---------------- */}
           <Grid item xs={12} lg={7}>
             <Paper sx={{ p: 4 }}>
-              {/* Bill No */}
-              <Typography fontWeight={600}>Bill No</Typography>
               <TextField
+                label="Invoice Number"
                 fullWidth
                 size="small"
-                {...register("Bill No")}
+                {...register("invoiceNumber")}
                 sx={{ mb: 3 }}
               />
 
-              {/* Date + Shift */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid container spacing={2} mb={3}>
                 <Grid item xs={6}>
-                  <Typography fontWeight={600}>Date</Typography>
                   <TextField
                     type="date"
                     fullWidth
                     size="small"
-                    {...register("Date")}
+                    label="Date"
+                    {...register("date")}
                   />
                 </Grid>
-
                 <Grid item xs={6}>
-                  <Typography fontWeight={600}>Shift</Typography>
                   <TextField
                     fullWidth
                     size="small"
-                    value="SHIFT-1"
-                    {...register("Shift")}
+                    label="Shift"
+                    {...register("shift")}
                   />
                 </Grid>
               </Grid>
 
-              {/* ITEMS TABLE */}
-              <Typography variant="h6" fontWeight={700}>
-                Items @ GST 5%
-              </Typography>
+              <Typography fontWeight={700}>Items</Typography>
 
               <TableContainer sx={{ border: "1px solid #ddd", mb: 3 }}>
                 <Table size="small">
-                  <TableHead sx={{ background: "#eee" }}>
+                  <TableHead>
                     <TableRow>
-                      <TableCell>Item Name</TableCell>
-                      <TableCell>Rate</TableCell>
+                      <TableCell>Item</TableCell>
+                      <TableCell>Price</TableCell>
                       <TableCell>Qty</TableCell>
-                      <TableCell>Amount</TableCell>
+                      <TableCell>Total</TableCell>
                       <TableCell />
                     </TableRow>
                   </TableHead>
 
                   <TableBody>
-                    {fields.map((row, index) => (
+                    {fields?.map((row, index) => (
                       <TableRow key={row.id}>
-                        {/* Item Name */}
                         <TableCell>
                           <Controller
                             control={control}
-                            name={`Items.${index}.Item Name`}
+                            name={`items.${index}.name`}
                             render={({ field }) => (
                               <Autocomplete
-                                options={MENU_ITEMS}
-                                getOptionLabel={(o) => o.name}
-                                value={
-                                  MENU_ITEMS.find(
-                                    (x) => x.name === field.value
-                                  ) || null
-                                }
-                                onChange={(e, val) => {
+                                options={productData?.data || []}
+                                getOptionLabel={(o: any) => o?.name || ""}
+                                onChange={(_, val: any) => {
                                   if (!val) return;
+                                  setValue(`items.${index}.name`, val?.name);
                                   setValue(
-                                    `Items.${index}.Item Name`,
-                                    val.name
+                                    `items.${index}.perUnitPrice`,
+                                    val?.pricing?.[0]?.price || 0
                                   );
-                                  setValue(`Items.${index}.Rate`, val.rate);
-                                  setValue(`Items.${index}.Qty`, 1);
+                                  setValue(`items.${index}.quantity`, 1);
                                   setValue(
-                                    `Items.${index}.Amount`,
-                                    val.rate * 1
+                                    `items.${index}.totalPrice`,
+                                    val?.pricing?.[0]?.price || 0
                                   );
                                 }}
                                 renderInput={(params) => (
@@ -999,10 +972,9 @@ export default function CreateInvoice() {
                           />
                         </TableCell>
 
-                        {/* Rate */}
                         <TableCell>
                           <Controller
-                            name={`Items.${index}.Rate`}
+                            name={`items.${index}.perUnitPrice`}
                             control={control}
                             render={({ field }) => (
                               <TextField
@@ -1010,20 +982,22 @@ export default function CreateInvoice() {
                                 type="number"
                                 size="small"
                                 onChange={(e) => {
-                                  const val = Number(e.target.value);
-                                  field.onChange(val);
-                                  const qty = watch(`Items.${index}.Qty`);
-                                  setValue(`Items.${index}.Amount`, qty * val);
+                                  const price = +e.target.value;
+                                  field.onChange(price);
+                                  const qty = watch(`items.${index}.quantity`);
+                                  setValue(
+                                    `items.${index}.totalPrice`,
+                                    price * qty
+                                  );
                                 }}
                               />
                             )}
                           />
                         </TableCell>
 
-                        {/* Qty */}
                         <TableCell>
                           <Controller
-                            name={`Items.${index}.Qty`}
+                            name={`items.${index}.quantity`}
                             control={control}
                             render={({ field }) => (
                               <TextField
@@ -1031,22 +1005,25 @@ export default function CreateInvoice() {
                                 type="number"
                                 size="small"
                                 onChange={(e) => {
-                                  const qty = Number(e.target.value);
+                                  const qty = +e.target.value;
                                   field.onChange(qty);
-                                  const rate = watch(`Items.${index}.Rate`);
-                                  setValue(`Items.${index}.Amount`, qty * rate);
+                                  const price = watch(
+                                    `items.${index}.perUnitPrice`
+                                  );
+                                  setValue(
+                                    `items.${index}.totalPrice`,
+                                    price * qty
+                                  );
                                 }}
                               />
                             )}
                           />
                         </TableCell>
 
-                        {/* Amount */}
                         <TableCell>
-                          {watch(`Items.${index}.Amount`)?.toFixed(2)}
+                          {watch(`items.${index}.totalPrice`)?.toFixed(2)}
                         </TableCell>
 
-                        {/* Delete */}
                         <TableCell>
                           <IconButton
                             color="error"
@@ -1061,158 +1038,48 @@ export default function CreateInvoice() {
                 </Table>
               </TableContainer>
 
-              {/* Add Item */}
               <ThemeButton
                 startIcon={<AddIcon />}
                 buttonStyle={{ width: "100%", mb: 3 }}
                 onClick={() =>
                   append({
-                    "Item Name": "",
-                    Rate: 0,
-                    Qty: 1,
-                    Amount: 0,
+                    name: "",
+                    quantity: 1,
+                    perUnitPrice: 0,
+                    totalPrice: 0,
                   })
                 }
               >
                 Add Item
               </ThemeButton>
 
-              {/* Payment */}
-              <Typography fontWeight={600}>Payment</Typography>
-              <Select fullWidth size="small" {...register("Payment")}>
-                <MenuItem value="CASH">CASH</MenuItem>
-                <MenuItem value="UPI">UPI</MenuItem>
-                <MenuItem value="CARD">CARD</MenuItem>
+              <Select fullWidth size="small" {...register("paymentMethod")}>
+                <MenuItem value="cash">Cash</MenuItem>
+                <MenuItem value="online">Online</MenuItem>
+                <MenuItem value="card">Card</MenuItem>
               </Select>
 
               <ThemeButton
+                variant={"contained"}
                 type="submit"
                 startIcon={<PrintIcon />}
-                buttonStyle={{ width: "100%", height: 44, mt: 3 }}
+                buttonStyle={{ width: "100%", mt: 3 }}
               >
                 Print Invoice
               </ThemeButton>
             </Paper>
           </Grid>
 
-          {/* ---------------- RIGHT SIDE RECEIPT ---------------- */}
           <Grid item xs={12} lg={5}>
-            <Box
-              sx={{
-                background: "white",
-                border: "1px solid #ccc",
-                p: 3,
-                borderRadius: 2,
-                fontFamily: "monospace",
-              }}
-            >
-              {/* Header */}
-              <Typography textAlign="center" fontWeight={700}>
-                EA8 AND FLY
+            <Paper sx={{ p: 3 }}>
+              <Typography>Sub Total: ₹{subTotal.toFixed(2)}</Typography>
+              <Typography>
+                Tax ({taxPercentage}%): ₹{taxAmount.toFixed(2)}
               </Typography>
-
-              <Typography
-                textAlign="center"
-                fontSize="10px"
-                whiteSpace="pre-line"
-                mt={1}
-              >
-                1st floor international SHA, SGRDJ International Airport,
-                Amritsar - 143001
+              <Typography fontWeight={700}>
+                Total: ₹{totalAmount.toFixed(2)}
               </Typography>
-
-              <Typography textAlign="center" fontSize="10px" mt={1}>
-                GSTIN: 03NTHPS8695L1ZG
-              </Typography>
-
-              {/* Bill Info */}
-              <Box mt={2} fontSize="11px">
-                <Box display="flex" justifyContent="space-between">
-                  <span>Bill No:</span>
-                  <span>{watch("Bill No")}</span>
-                </Box>
-
-                <Box display="flex" justifyContent="space-between">
-                  <span>Date:</span>
-                  <span>{watch("Date")}</span>
-                </Box>
-
-                <Box display="flex" justifyContent="space-between">
-                  <span>Shift:</span>
-                  <span>{watch("Shift")}</span>
-                </Box>
-              </Box>
-
-              {/* ITEMS */}
-              <Box
-                sx={{
-                  borderTop: "2px dashed #999",
-                  borderBottom: "2px dashed #999",
-                  py: 1,
-                  my: 2,
-                  textAlign: "center",
-                  fontWeight: 700,
-                  fontSize: "11px",
-                }}
-              >
-                ITEMS @ GST 5%
-              </Box>
-
-              <Box fontSize="11px">
-                {items.map((it: any, i: number) => (
-                  <Box
-                    key={i}
-                    display="flex"
-                    justifyContent="space-between"
-                    mb={1}
-                  >
-                    <span>{it["Item Name"]}</span>
-                    <span>{it.Qty}</span>
-                    <span>{it.Rate.toFixed(2)}</span>
-                    <span>{(it.Qty * it.Rate).toFixed(2)}</span>
-                  </Box>
-                ))}
-              </Box>
-
-              {/* SUMMARY */}
-              <Box borderTop="1px solid #ddd" mt={2} pt={1} fontSize="11px">
-                <Box display="flex" justifyContent="space-between">
-                  <span>Sub Total</span>
-                  <span>{subtotal.toFixed(2)}</span>
-                </Box>
-
-                <Box display="flex" justifyContent="space-between">
-                  <span>CGST</span>
-                  <span>{cgst.toFixed(2)}</span>
-                </Box>
-
-                <Box display="flex" justifyContent="space-between">
-                  <span>SGST</span>
-                  <span>{sgst.toFixed(2)}</span>
-                </Box>
-
-                <Box display="flex" justifyContent="space-between">
-                  <span>Round-off Amount</span>
-                  <span>0.00</span>
-                </Box>
-              </Box>
-
-              {/* TOTAL */}
-              <Box
-                sx={{
-                  borderTop: "2px dashed #999",
-                  mt: 2,
-                  pt: 1,
-                  fontWeight: 700,
-                  fontSize: "13px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span>Grand Total:</span>
-                <span>{grandTotal.toFixed(2)}</span>
-              </Box>
-            </Box>
+            </Paper>
           </Grid>
         </Grid>
       </form>
