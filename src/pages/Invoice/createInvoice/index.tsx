@@ -790,6 +790,7 @@ import { InfoCircle } from "iconsax-react";
 import { openSnackbar } from "api/snackbar";
 import useAuth from "hooks/useAuth";
 import { useGetProduct } from "hooks/product/query";
+import { useCreateInvoice } from "hooks/Invoice/mutation";
 
 // MENU ITEMS SAMPLE
 const MENU_ITEMS = [
@@ -824,7 +825,8 @@ const InvoiceSchema = z.object({
 export default function CreateInvoice() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
+  const createInvoice = useCreateInvoice();
+  console.log("user", user);
   const {
     data: productData,
     refetch: refetchStaff,
@@ -882,6 +884,14 @@ export default function CreateInvoice() {
   // ------------------- SUBMIT -------------------
   const onSubmit = (data: any) => {
     console.log("FINAL PAYLOAD EXACT KEYS:", data);
+    createInvoice
+      .mutateAsync({ body: { ...data, airport: user?.airport } })
+      ?.then((res) => {
+        console.log("res", res);
+      })
+      ?.catch((err) => {
+        console.log("err", err);
+      });
 
     openSnackbar({
       open: true,
