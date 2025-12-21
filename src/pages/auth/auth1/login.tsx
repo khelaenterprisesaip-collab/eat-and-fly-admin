@@ -19,7 +19,7 @@ export default function Login() {
           alignItems={"center"}
           sx={{ textAlign: "center" }}
         >
-          <NewLogo />
+          <img src="/newLogo.jpeg" width={180} />
         </Grid>
         <Grid item xs={12}>
           <Stack

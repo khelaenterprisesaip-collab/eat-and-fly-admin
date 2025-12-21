@@ -88,7 +88,7 @@ const Invoice = ({ open, setOpen, orderBilling, setMailOpen }: any) => {
         <div className="bg-blue-700 text-white p-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold">INVOICE</h1>
 
-          <NewLogo />
+          <img src="/newLogo.jpeg" width={130} />
           {/* <div className="text-right text-lg font-semibold">Smart Global</div> */}
         </div>
 
