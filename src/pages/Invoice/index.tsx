@@ -8,8 +8,11 @@ import { Filter } from "iconsax-react";
 import { debounce } from "lodash";
 import { PlusIcon } from "assets/svg/upload/PlusIcon";
 import InvoiceTable from "./table";
+import useAuth from "hooks/useAuth";
+import { UserRole } from "utils/trimFc";
 
 const InvoiceMainPage = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const [drawer, setDrawer] = useState(false);
@@ -25,13 +28,15 @@ const InvoiceMainPage = () => {
         primaryAction={
           <Stack direction="row" spacing={1}>
             <Link to="/invoice/create">
-              <ThemeButton
-                variant="contained"
-                size="small"
-                startIcon={!isMobile && <PlusIcon />}
-              >
-                {isMobile ? <PlusIcon /> : "Create Invoice"}
-              </ThemeButton>
+              {user?.role === UserRole?.staff && (
+                <ThemeButton
+                  variant="contained"
+                  size="small"
+                  startIcon={!isMobile && <PlusIcon />}
+                >
+                  {isMobile ? <PlusIcon /> : "Create Invoice"}
+                </ThemeButton>
+              )}
             </Link>
 
             <ThemeButton

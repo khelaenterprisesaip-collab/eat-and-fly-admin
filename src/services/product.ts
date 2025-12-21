@@ -25,6 +25,13 @@ export async function fetchAllProduct({ query }: any) {
   });
 }
 
+export async function fetchAirportProduct({ query }: any) {
+  return callApi({
+    uriEndPoint: { ...product.fetchAirportProduct.v1 } as ApiEndpoint,
+    query,
+  });
+}
+
 export async function getSingleFetch({ pathParams }: any) {
   return callApi({
     uriEndPoint: { ...product.fetchProduct.v1 } as ApiEndpoint,

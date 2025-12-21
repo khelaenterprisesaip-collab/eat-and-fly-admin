@@ -59,6 +59,14 @@ const product = {
     },
   },
 
+  fetchAirportProduct: {
+    v1: {
+      ...defaults.methods.GET,
+      ...defaults.versions.v1,
+      uri: prefix + "/airport/single",
+    },
+  },
+
   deleteProduct: {
     v1: {
       ...defaults.methods.DELETE,

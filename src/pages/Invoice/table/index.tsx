@@ -29,12 +29,18 @@ import EmptyTable from "components/ui/EmptyTable";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
 import { CloseIcon } from "assets/svg/CloseIcon";
 import SelectColumnVisibility from "components/third-party/SelectColumnVisibility";
-import { Edit } from "lucide-react";
+import { Edit, Eye } from "lucide-react";
 import { useGetProduct } from "hooks/product/query";
 import { DeleteIcon } from "assets/svg/Delete";
 import ConfirmModal from "components/ui/confrimModal";
 import { deleteProduct } from "services/product";
 import { useGetInvoices } from "hooks/Invoice/query";
+import dayjs from "dayjs";
+import { formatINR } from "utils/trimFc";
+import ThemeButton from "components/ui/Button";
+import { deleteInvoice } from "services/invoice";
+import PdfDialog from "../pdf";
+import { width } from "@mui/system";
 
 const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   const theme = useTheme();
@@ -49,6 +55,7 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   const [startIndex, setStartIndex] = useState(0);
   const [viewPage, setViewPage] = useState(25);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [pdfModal, setPdfModal] = useState({ visible: false, url: "" });
 
   const [filterValue, setFilterValue] = useState("Columns");
 
@@ -82,13 +89,6 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
 
   const options = (rowData: any) => [
     {
-      icon: <Edit color="#778194" width="18" height="18" />,
-      value: "Edit Invoice",
-      content: () => {
-        navigate("");
-      },
-    },
-    {
       icon: <DeleteIcon />,
       value: "Delete Invoice",
       content: () => {
@@ -104,7 +104,7 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
 
   const deleteStatus = () => {
     setStatusLoading(true);
-    deleteProduct({
+    deleteInvoice({
       pathParams: { id: selectedInvoice?.id },
     })
       ?.then((res) => {
@@ -145,47 +145,18 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
       },
       {
         header: "Invoice Number",
-        accessorKey: "name",
+        accessorKey: "invoiceNumber",
         meta: { type: "text" },
-        cell: (cell: any) => `${cell?.row?.original?.name || ""}`,
+        cell: (cell: any) => `${cell?.row?.original?.invoiceNumber || ""}`,
         minSize: 120,
       },
       {
         header: "Bill Date",
-        accessorKey: "billDate",
+        accessorKey: "dateTime",
         meta: { type: "text" },
-        cell: (cell: any) => `${cell?.row?.original?.billDate || ""}`,
+        cell: (cell: any) =>
+          `${cell?.row?.original?.dateTime ? dayjs.unix(cell?.row?.original?.dateTime).format("DD/MM/YYYY HH:mm") : "-"}`,
         minSize: 120,
-      },
-      {
-        header: "Customer Name",
-        accessorKey: "customerName",
-        minSize: 180,
-        meta: { type: "text" },
-        cell: ({ cell }: any) => (
-          <Typography
-            variant="inherit"
-            textTransform="lowercase"
-            color={theme.palette.primary.main}
-          >
-            {cell?.row?.original?.customerName || "N/A"}
-          </Typography>
-        ),
-      },
-      {
-        header: "Customer Email",
-        accessorKey: "customerEmail",
-        minSize: 180,
-        meta: { type: "text" },
-        cell: ({ cell }: any) => (
-          <Typography
-            variant="inherit"
-            textTransform="lowercase"
-            color={theme.palette.primary.main}
-          >
-            {cell?.row?.original?.customerEmail || "N/A"}
-          </Typography>
-        ),
       },
       {
         header: "Total Amount",
@@ -198,10 +169,44 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
             textTransform="lowercase"
             color={theme.palette.primary.main}
           >
-            {cell?.row?.original?.totalAmount || "N/A"}
+            {formatINR(cell?.row?.original?.totalAmount) || "N/A"}
           </Typography>
         ),
       },
+      {
+        header: "Download Pdf",
+        accessorKey: "pdf",
+        minSize: 110,
+        meta: { type: "text" },
+        cell: ({ row }: any) => {
+          return (
+            <Stack direction={"row"} gap={2}>
+              <ThemeButton
+                buttonStyle={{ width: "100%" }}
+                variant="contained"
+                component="a"
+                href={row.original.pdf?.url}
+                download
+                target="_blank"
+              >
+                Download
+              </ThemeButton>
+
+              <ThemeButton
+                buttonStyle={{ width: "100%" }}
+                startIcon={<Eye />}
+                variant="outlined"
+                onClick={() => {
+                  setPdfModal({ visible: true, url: row.original.pdf?.url });
+                }}
+              >
+                Preview
+              </ThemeButton>
+            </Stack>
+          );
+        },
+      },
+
       {
         header: "Action",
         id: "action",
@@ -227,7 +232,7 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   ]);
 
   const table = useReactTable({
-    data: useMemo(() => invoiceData?.data || [], [invoiceData]),
+    data: useMemo(() => invoiceData?.invoices || [], [invoiceData]),
     columns,
     state: { columnVisibility },
     onColumnVisibilityChange: setColumnVisibility,
@@ -411,6 +416,14 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
           </TabContext>
         </Stack>
       </Drawer>
+
+      <PdfDialog
+        open={pdfModal?.visible}
+        onClose={() => {
+          setPdfModal({ visible: false, url: "" });
+        }}
+        pdfUrl={pdfModal?.url}
+      />
     </>
   );
 };

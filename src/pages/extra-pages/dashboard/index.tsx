@@ -1,141 +1,106 @@
-import { useState } from "react";
-import RevenueDashboard from "./analytics/revenue-summary";
-import MainDashboard from "./main";
-import { Button, Card, Tab, Tabs } from "@mui/material";
-import OrderVolumeDashboard from "./analytics/order-volume";
-const tabs = [
-  {
-    label: "Main",
-    content: <MainDashboard />,
-  },
-  {
-    label: "Analytics",
-  },
-];
+import {
+  ThemeProvider,
+  CssBaseline,
+  Box,
+  Container,
+  Typography,
+  Grid,
+} from "@mui/material";
 
-const tabLabels = [
-  {
-    label: "Revenue Scorecard",
-    content: <RevenueDashboard />,
-  },
-  {
-    label: "Order Volume",
-    content: <OrderVolumeDashboard />,
-  },
-  {
-    label: "Volume Summary",
-  },
-  {
-    label: "Customer Scorecard",
-  },
-  {
-    label: "Customer KPI/AR",
-  },
-  {
-    label: "Customer Volume",
-  },
-  {
-    label: "Cust SC Rolling",
-  },
-  {
-    label: "Top 10/20",
-  },
-  {
-    label: "Lane Macro View",
-  },
-  {
-    label: "Lane Pricing",
-  },
-  {
-    label: "Non Invoiced",
-  },
-  {
-    label: "Invoice and Billing Cycle",
-  },
-  {
-    label: "Invoice Summary",
-  },
-];
+import {
+  Receipt,
+  Inventory,
+  People,
+  FlightTakeoff,
+  AttachMoney,
+} from "@mui/icons-material";
+import SalesChart from "./Product/graph";
+import StatCard from "./Product/card";
+import useAuth from "hooks/useAuth";
+import RecentInvoices from "./Product/table";
 
 export default function Dashboard() {
-  const [tab, setTab] = useState(tabs[0]);
-  const [selectedTab, setSelectedTab] = useState(0);
-
+  const { user } = useAuth();
   return (
     <>
-      {/* <div className="!mb-2">
-        {tabs?.map((item, index) => (
-          <Button
-            key={index}
-            variant={tab.label === item.label ? "contained" : "outlined"}
-            color="primary"
-            onClick={() => {
-              setTab(item);
-              if (item.label === "Analytics") {
-                setSelectedTab(0);
-                setTab({
-                  label: "Analytics",
-                  content: <RevenueDashboard />,
-                });
-              }
-            }}
-            className="!text-sm !px-4 !py-2 !mr-2  !rounded-md"
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box mb={4}>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 700, color: "#1a1f1a", mb: 0.5 }}
           >
-            {item.label}
-          </Button>
-        ))}
-      </div>
-      {tab.label === "Analytics" ? (
-        <div className="py-2">
-          <Card
-            elevation={2}
-            sx={{
-              background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-              border: "1px solid #e2e8f0",
-            }}
-          >
-            <Tabs
-              value={selectedTab}
-              onChange={(e, newValue) => setSelectedTab(newValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-              className="px-4"
-              sx={{
-                "& .MuiTab-root": {
-                  minWidth: "auto",
-                  fontSize: "0.75rem",
-                  textTransform: "none",
-                  color: "#64748b",
-                  "&.Mui-selected": {
-                    color: "#1e40af",
-                    fontWeight: 600,
-                  },
-                },
-                "& .MuiTabs-indicator": {
-                  backgroundColor: "#1e40af",
-                },
-              }}
-            >
-              {tabLabels.map((label, index) => (
-                <Tab
-                  key={index}
-                  label={label.label}
-                  onClick={() => {
-                    setTab({
-                      label: "Analytics",
-                      content: label?.content || <>Working...</>,
-                    });
-                    setSelectedTab(index);
-                  }}
-                />
-              ))}
-            </Tabs>
-          </Card>
-        </div>
-      ) : (
-        <></>
-      )}
-      {tab.content} */}
+            Dashboard Overview
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Welcome back! Here's what's happening with your business today.
+          </Typography>
+        </Box>
+        {/* Stats Cards */}
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} lg={4}>
+            <StatCard
+              title="Total Invoices"
+              value="1,284"
+              icon={Receipt}
+              change="+12.5% from last month"
+              changeType="positive"
+              gradient="linear-gradient(135deg, #334735 0%, #4a6a4d 100%)"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={4}>
+            <StatCard
+              title="Products"
+              value="156"
+              icon={Inventory}
+              change="+8 new this week"
+              changeType="positive"
+              gradient="linear-gradient(135deg, #4a6a4d 0%, #5a8f5e 100%)"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={4}>
+            <StatCard
+              title="Staff Members"
+              value="89"
+              icon={People}
+              change="+3 hired this month"
+              changeType="positive"
+              gradient="linear-gradient(135deg, #5a8f5e 0%, #7bb87f 100%)"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={4}>
+            <StatCard
+              title="Airports"
+              value="42"
+              icon={FlightTakeoff}
+              change="2 pending approval"
+              changeType="neutral"
+              gradient="linear-gradient(135deg, #334735 0%, #5a8f5e 100%)"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={4}>
+            <StatCard
+              title="Total Sales"
+              value="$728K"
+              icon={AttachMoney}
+              change="+23.1% from last month"
+              changeType="positive"
+              gradient="linear-gradient(135deg, #1f2b21 0%, #334735 100%)"
+            />
+          </Grid>
+        </Grid>
+        {/* Charts Row */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12}>
+            <SalesChart />
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <RecentInvoices />
+          </Grid>
+        </Grid>
+      </Container>
     </>
   );
 }

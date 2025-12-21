@@ -14,6 +14,10 @@ interface ButtonProps {
   type?: any;
   disabled?: boolean;
   loading?: boolean;
+  component?: any;
+  href?: any;
+  download?: any;
+  target?: any;
 }
 
 const ThemeButton = ({
@@ -28,15 +32,23 @@ const ThemeButton = ({
   onClick,
   disabled,
   loading,
+  component,
+  target,
+  download,
+  href,
   ...props
 }: ButtonProps) => {
   return (
     <LoadingButton
+      href={href}
+      download={download}
+      component={component}
       variant={variant}
       color={color}
       loading={loading}
       type={type}
       size={size}
+      target={target}
       startIcon={startIcon}
       onClick={onClick}
       endIcon={endIcon}
