@@ -63,7 +63,7 @@ const MainRoutes: any = {
   children: [
     {
       path: "/",
-      element: <DashboardLayout allowPermission={"allow_both"} />,
+      element: <DashboardLayout allowPermission={"admin"} />,
       children: [
         {
           path: "/dashboard",
@@ -74,7 +74,7 @@ const MainRoutes: any = {
 
     {
       path: "/",
-      element: <DashboardLayout allowPermission={"allow_both"} />,
+      element: <DashboardLayout allowPermission={"admin"} />,
 
       children: [
         {
@@ -108,7 +108,7 @@ const MainRoutes: any = {
 
     {
       path: "/",
-      element: <DashboardLayout allowPermission={"allow_both"} />,
+      element: <DashboardLayout allowPermission={"admin"} />,
 
       children: [
         {
@@ -145,7 +145,7 @@ const MainRoutes: any = {
 
     {
       path: "/",
-      element: <DashboardLayout allowPermission={"view_customer"} />,
+      element: <DashboardLayout allowPermission={"admin"} />,
 
       children: [
         {

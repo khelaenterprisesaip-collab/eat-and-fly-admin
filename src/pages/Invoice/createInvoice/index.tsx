@@ -12,20 +12,15 @@ import {
   TableHead,
   TableRow,
   Typography,
-  IconButton,
-  Select,
-  MenuItem,
-  Autocomplete,
   Stack,
   useMediaQuery,
   Box,
+  MenuItem,
+  Select,
+  IconButton,
 } from "@mui/material";
 
-import {
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  Print as PrintIcon,
-} from "@mui/icons-material";
+import { Add, Remove, Print as PrintIcon } from "@mui/icons-material";
 
 import ThemeButton from "components/ui/Button";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
@@ -33,14 +28,16 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { openSnackbar } from "api/snackbar";
 import useAuth from "hooks/useAuth";
-import { useGetAirportProduct, useGetProduct } from "hooks/product/query";
+import { useGetAirportProduct } from "hooks/product/query";
 import { useCreateInvoice } from "hooks/Invoice/mutation";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import FormLabels from "components/ui/FormLabel";
+import Input from "components/ui/Input";
 
+// ---------------- VALIDATION ----------------
 const InvoiceSchema = z.object({
   date: z.string(),
-  shift: z.string(),
   items: z.array(
     z.object({
       name: z.string(),
@@ -50,7 +47,33 @@ const InvoiceSchema = z.object({
     })
   ),
   subTotal: z.number(),
-  taxPercentage: z.number(),
+
+  // ---- CGST & IGST allow blank, become 0 ----
+  cgst: z.preprocess((v) => {
+    if (v === "" || v === null || v === undefined) return 0;
+    return Number(v);
+  }, z.number()),
+
+  igst: z.preprocess((v) => {
+    if (v === "" || v === null || v === undefined) return 0;
+    return Number(v);
+  }, z.number()),
+
+  // ---- DISCOUNT validation 1 - 100 BUT allow blank typing ---
+  discount: z.preprocess(
+    (v) => {
+      if (v === "" || v === null || v === undefined) return "";
+      return Number(v);
+    },
+    z.union([
+      z.literal(""),
+      z
+        .number()
+        .min(1, "Discount must be at least 1%")
+        .max(100, "Discount cannot exceed 100%"),
+    ])
+  ),
+
   totalAmount: z.number(),
   paymentMethod: z.enum(["cash", "card", "online"]),
 });
@@ -73,30 +96,56 @@ export default function CreateInvoice() {
       resolver: zodResolver(InvoiceSchema),
       defaultValues: {
         date: new Date().toISOString().split("T")[0],
-        shift: "SHIFT-1",
         items: [],
         subTotal: 0,
-        taxPercentage: 5,
+        cgst: 2.5,
+        igst: 2.5,
+        discount: "" as any,
         totalAmount: 0,
         paymentMethod: "cash",
       },
     });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, replace } = useFieldArray({
     control,
     name: "items",
   });
 
+  // load product list
+  useEffect(() => {
+    if (productData?.data?.length) {
+      replace(
+        productData.data.map((p: any) => ({
+          name: p?.name || "",
+          quantity: 0,
+          perUnitPrice: p?.pricing?.[0]?.price || 0,
+          totalPrice: 0,
+        }))
+      );
+    }
+  }, [productData, replace]);
+
   const items = watch("items");
 
+  const rawDiscount = watch("discount");
+  const discount = rawDiscount === "" ? 0 : Number(rawDiscount || 0); // % discount (validated)
+
+  const cgst = Number(watch("cgst") || 0);
+  const igst = Number(watch("igst") || 0);
+
   const subTotal = items.reduce(
-    (sum, it) => sum + it.perUnitPrice * it.quantity,
+    (sum, it) => sum + it.quantity * it.perUnitPrice,
     0
   );
 
-  const taxPercentage = watch("taxPercentage");
-  const taxAmount = (subTotal * taxPercentage) / 100;
-  const totalAmount = subTotal + taxAmount;
+  // percentage discount
+  const discountAmount = (subTotal * discount) / 100;
+
+  const taxableAmount = Math.max(subTotal - discountAmount, 0);
+
+  const gstAmount = (taxableAmount * (cgst + igst)) / 100;
+
+  const totalAmount = taxableAmount + gstAmount;
 
   useEffect(() => {
     setValue("subTotal", subTotal);
@@ -104,24 +153,37 @@ export default function CreateInvoice() {
   }, [subTotal, totalAmount, setValue]);
 
   const onSubmit = (data: InvoiceFormType) => {
+    const hasItems = data.items.some((x) => x.quantity > 0);
+
+    if (!hasItems) {
+      openSnackbar({
+        open: true,
+        message: "Add item to create invoice",
+        variant: "alert",
+        alert: { color: "error" },
+      } as any);
+      return;
+    }
+
     const payload = {
       airport: user?.airport,
       dateTime: Date.now(),
       subTotal: data.subTotal,
-      taxPercentage: data.taxPercentage,
+      cgstPercentage: cgst,
+      igstPercentage: igst,
+      discountPercentage: discount,
+      discountAmount,
       totalAmount: data.totalAmount,
       status: "paid",
-      items: data.items.map((it) => ({
-        name: it?.name,
-        quantity: it?.quantity,
-        perUnitPrice: it?.perUnitPrice,
-        totalPrice: it?.totalPrice,
-      })),
+      items: data.items.filter((x) => x.quantity > 0),
       paymentMethod: data?.paymentMethod,
     };
+
+    console.log("data", data);
+
     createInvoice
       .mutateAsync({ body: payload })
-      ?.then((res) => {
+      .then(() => {
         navigate("/invoices");
         openSnackbar({
           open: true,
@@ -130,15 +192,17 @@ export default function CreateInvoice() {
           alert: { color: "success" },
         } as any);
       })
-      .catch((err) => {
+      .catch(() => {
         openSnackbar({
           open: true,
-          message: "something went wrong",
+          message: "Something went wrong",
           variant: "alert",
           alert: { color: "error" },
         } as any);
       });
   };
+
+  if (!productData?.data) return null;
 
   return (
     <Container maxWidth="xl">
@@ -151,26 +215,18 @@ export default function CreateInvoice() {
           <Grid item xs={12} lg={7}>
             <Paper sx={{ p: 4 }}>
               <Grid container spacing={2} mb={3}>
-                <Grid item xs={6}>
+                <Grid item xs={12}>
+                  <FormLabels>Date</FormLabels>
                   <TextField
                     type="date"
                     fullWidth
                     size="small"
-                    label="Date"
                     {...register("date")}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Shift"
-                    {...register("shift")}
                   />
                 </Grid>
               </Grid>
 
-              <Typography fontWeight={700}>Items</Typography>
+              <Typography fontWeight={700}>Products</Typography>
 
               <TableContainer sx={{ border: "1px solid #ddd", mb: 3 }}>
                 <Table size="small">
@@ -180,107 +236,59 @@ export default function CreateInvoice() {
                       <TableCell>Price</TableCell>
                       <TableCell>Qty</TableCell>
                       <TableCell>Total</TableCell>
-                      <TableCell />
                     </TableRow>
                   </TableHead>
 
                   <TableBody>
-                    {fields?.map((row, index) => (
+                    {fields.map((row, index) => (
                       <TableRow key={row.id}>
+                        <TableCell>{row.name}</TableCell>
+
                         <TableCell>
-                          <Controller
-                            control={control}
-                            name={`items.${index}.name`}
-                            render={({ field }) => (
-                              <Autocomplete
-                                options={productData?.data || []}
-                                getOptionLabel={(o: any) => o?.name || ""}
-                                onChange={(_, val: any) => {
-                                  if (!val) return;
-                                  setValue(`items.${index}.name`, val?.name);
-                                  setValue(
-                                    `items.${index}.perUnitPrice`,
-                                    val?.pricing?.[0]?.price || 0
-                                  );
-                                  setValue(`items.${index}.quantity`, 1);
-                                  setValue(
-                                    `items.${index}.totalPrice`,
-                                    val?.pricing?.[0]?.price || 0
-                                  );
-                                }}
-                                renderInput={(params) => (
-                                  <TextField {...params} size="small" />
-                                )}
-                              />
-                            )}
-                          />
+                          {watch(`items.${index}.perUnitPrice`)?.toFixed(2)}
                         </TableCell>
 
                         <TableCell>
-                          <Controller
-                            name={`items.${index}.perUnitPrice`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                size="small"
-                                onChange={(e) => {
-                                  const price = +e.target.value;
-                                  field.onChange(price);
-                                  const qty = watch(`items.${index}.quantity`);
-                                  setValue(
-                                    `items.${index}.totalPrice`,
-                                    price * qty
-                                  );
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-
-                        <TableCell>
-                          <Controller
-                            name={`items.${index}.quantity`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                size="small"
-                                value={field.value ?? ""}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value === "") {
-                                    field.onChange("");
-                                    setValue(`items.${index}.totalPrice`, 0);
-                                    return;
-                                  }
-                                  const qty = Number(value);
-                                  field.onChange(qty);
-                                  const price =
-                                    watch(`items.${index}.perUnitPrice`) || 0;
-                                  setValue(
-                                    `items.${index}.totalPrice`,
-                                    price * qty
-                                  );
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-
-                        <TableCell>
-                          {watch(`items.${index}.totalPrice`)?.toFixed(2)}
-                        </TableCell>
-
-                        <TableCell>
-                          <IconButton
-                            color="error"
-                            onClick={() => remove(index)}
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
                           >
-                            <DeleteIcon />
-                          </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                const qty = Math.max(
+                                  (watch(`items.${index}.quantity`) || 0) - 1,
+                                  0
+                                );
+                                setValue(`items.${index}.quantity`, qty);
+                              }}
+                            >
+                              <Remove />
+                            </IconButton>
+
+                            <Typography>
+                              {watch(`items.${index}.quantity`) || 0}
+                            </Typography>
+
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                const qty =
+                                  (watch(`items.${index}.quantity`) || 0) + 1;
+                                setValue(`items.${index}.quantity`, qty);
+                              }}
+                            >
+                              <Add />
+                            </IconButton>
+                          </Stack>
+                        </TableCell>
+
+                        <TableCell>
+                          {(
+                            (watch(`items.${index}.quantity`) || 0) *
+                            watch(`items.${index}.perUnitPrice`)
+                          ).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -288,29 +296,68 @@ export default function CreateInvoice() {
                 </Table>
               </TableContainer>
 
-              <ThemeButton
-                startIcon={<AddIcon />}
-                buttonStyle={{ width: "100%", mb: 3 }}
-                onClick={() =>
-                  append({
-                    name: "",
-                    quantity: 1,
-                    perUnitPrice: 0,
-                    totalPrice: 0,
-                  })
-                }
-              >
-                Add Item
-              </ThemeButton>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <FormLabels>Discount</FormLabels>
 
-              <Select fullWidth size="small" {...register("paymentMethod")}>
-                <MenuItem value="cash">Cash</MenuItem>
-                <MenuItem value="online">Online</MenuItem>
-                <MenuItem value="card">Card</MenuItem>
-              </Select>
+                  <Controller
+                    control={control}
+                    name="discount"
+                    render={({ field }) => (
+                      <Input
+                        control={control}
+                        {...field}
+                        inputProps={{ inputMode: "numeric" }}
+                        onChange={(e: any) => {
+                          let value = e.target.value;
+
+                          if (value === "") {
+                            field.onChange("");
+                            return;
+                          }
+
+                          value = value.replace(/[^0-9]/g, "");
+
+                          let num = Number(value);
+
+                          if (num > 100) num = 100;
+                          if (num < 0) num = 0;
+
+                          field.onChange(num);
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid item xs={4}>
+                  <FormLabels>CGST</FormLabels>
+
+                  <Input disabled control={control} name="cgst" />
+                </Grid>
+
+                <Grid item xs={4}>
+                  <FormLabels>IGST</FormLabels>
+                  <Input disabled control={control} name="igst" />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <FormLabels>Cash Mode</FormLabels>
+                  <Select
+                    fullWidth
+                    size="small"
+                    defaultValue="cash"
+                    {...register("paymentMethod")}
+                  >
+                    <MenuItem value="cash">Cash</MenuItem>
+                    <MenuItem value="online">Online</MenuItem>
+                    <MenuItem value="card">Card</MenuItem>
+                  </Select>
+                </Grid>
+              </Grid>
 
               <ThemeButton
-                variant={"contained"}
+                variant="contained"
                 type="submit"
                 loading={createInvoice?.isPending}
                 startIcon={<PrintIcon />}
@@ -321,6 +368,7 @@ export default function CreateInvoice() {
             </Paper>
           </Grid>
 
+          {/* RIGHT PREVIEW */}
           <Grid item xs={12} lg={5}>
             <Box
               sx={{
@@ -335,34 +383,13 @@ export default function CreateInvoice() {
                 EA8 AND FLY
               </Typography>
 
-              <Typography
-                textAlign="center"
-                fontSize="10px"
-                whiteSpace="pre-line"
-                mt={1}
-              >
-                1st floor international SHA, SGRDJ International Airport,
-                Amritsar - 143001
-              </Typography>
-
-              <Typography textAlign="center" fontSize="10px" mt={1}>
-                GSTIN: 03NTHPS8695L1ZG
-              </Typography>
-
-              {/* Bill Info */}
-              <Box mt={2} fontSize="11px">
+              <Box fontSize="11px" mt={2}>
                 <Box display="flex" justifyContent="space-between">
                   <span>Date:</span>
                   <span>{watch("date")}</span>
                 </Box>
-
-                <Box display="flex" justifyContent="space-between">
-                  <span>Shift:</span>
-                  <span>{watch("shift")}</span>
-                </Box>
               </Box>
 
-              {/* ITEMS */}
               <Box
                 sx={{
                   borderTop: "2px dashed #999",
@@ -374,45 +401,45 @@ export default function CreateInvoice() {
                   fontSize: "11px",
                 }}
               >
-                ITEMS @ GST 5%
+                ITEMS
               </Box>
 
               <Box fontSize="11px">
-                {items.map((it: any, i: number) => (
-                  <Box
-                    key={i}
-                    display="flex"
-                    justifyContent="space-between"
-                    mb={1}
-                  >
-                    <span>{it["name"]}</span>
-                    <span>{it.quantity}</span>
-                    <span>{it.perUnitPrice?.toFixed(2)}</span>
-                    <span>{(it.quantity * it.perUnitPrice)?.toFixed(2)}</span>
-                  </Box>
-                ))}
+                {items.map(
+                  (it: any, i: number) =>
+                    it.quantity > 0 && (
+                      <Box
+                        key={i}
+                        display="flex"
+                        justifyContent="space-between"
+                        mb={1}
+                      >
+                        <span>{it.name}</span>
+                        <span>{it.quantity}</span>
+                        <span>{it.perUnitPrice?.toFixed(2)}</span>
+                        <span>
+                          {(it.quantity * it.perUnitPrice).toFixed(2)}
+                        </span>
+                      </Box>
+                    )
+                )}
               </Box>
 
               <Box borderTop="1px solid #ddd" mt={2} pt={1} fontSize="11px">
                 <Box display="flex" justifyContent="space-between">
                   <span>Sub Total</span>
-                  <span>{subTotal?.toFixed(2)}</span>
+                  <span>{subTotal.toFixed(2)}</span>
                 </Box>
 
                 <Box display="flex" justifyContent="space-between">
-                  <span>GST</span>
-                  <span>{taxAmount?.toFixed(2)}</span>
+                  <span>Discount ({discount}%)</span>
+                  <span>{((subTotal * discount) / 100).toFixed(2)}</span>
                 </Box>
 
-                {/* <Box display="flex" justifyContent="space-between">
-                  <span>SGST</span>
-                  <span>{sgst.toFixed(2)}</span>
-                </Box> */}
-
-                {/* <Box display="flex" justifyContent="space-between">
-                  <span>Round-off Amount</span>
-                  <span>0.00</span>
-                </Box> */}
+                <Box display="flex" justifyContent="space-between">
+                  <span>CGST + IGST</span>
+                  <span>{gstAmount.toFixed(2)}</span>
+                </Box>
               </Box>
 
               <Box

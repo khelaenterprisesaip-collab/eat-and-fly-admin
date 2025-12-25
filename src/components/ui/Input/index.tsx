@@ -24,6 +24,7 @@ interface InputProps {
   onInput?: any;
   sx?: any;
   endAdornment?: any;
+  inputProps?: any;
 }
 
 const Input = ({
@@ -35,6 +36,7 @@ const Input = ({
   labelStyle,
   disabled,
   endAdornment,
+  inputProps,
   sx,
   ...props
 }: InputProps) => {
@@ -63,6 +65,7 @@ const Input = ({
           control={props?.control}
           render={({ field }) => (
             <OutlinedInput
+              inputProps={inputProps}
               notched={false}
               {...field}
               disabled={disabled}

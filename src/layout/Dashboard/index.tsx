@@ -23,7 +23,11 @@ import RoleAccess2 from "routes/RoleAccess";
 
 // ==============================|| MAIN LAYOUT ||============================== //
 
-export default function MainLayout({ allowPermission }: any) {
+export default function MainLayout({
+  allowPermission,
+}: {
+  allowPermission: "admin" | "staff" | "allow_both";
+}) {
   const theme = useTheme();
 
   const { menuMasterLoading } = useGetMenuMaster();

@@ -112,7 +112,6 @@ export default function NavGroup({
   >(null);
   const [currentItem, setCurrentItem] = useState(item);
 
-  // const { permission }: any = useRole();
   const { user, Tenant } = useAuth();
 
   function filterItemsByPermissions(
@@ -121,10 +120,9 @@ export default function NavGroup({
     isTenant: boolean | undefined
   ): any {
     if (!items) return [];
-
-    const permissionMap: any = {
-      STAFF: role === "admin" || false,
-    };
+    const isAdmin = role === "admin";
+    const keys = ["STAFF", "PRODUCT", "DASHBOARD"];
+    const permissionMap = Object.fromEntries(keys?.map((k) => [k, isAdmin]));
 
     if (role) {
       return items.filter((item) => {

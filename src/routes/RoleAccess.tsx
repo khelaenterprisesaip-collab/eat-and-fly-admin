@@ -1,39 +1,21 @@
-import { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import useAuth, { useRole } from "hooks/useAuth";
-import Loader from "components/Loader";
+import useAuth from "hooks/useAuth";
+import { Navigate } from "react-router";
 
 interface RoleAccess2Props {
-  viewPermission: string;
+  viewPermission: "admin" | "staff" | "allow_both";
   children: React.ReactNode;
 }
 
-function RoleAccess2({
-  viewPermission,
-  children,
-}: RoleAccess2Props): JSX.Element {
-  const { logout, user, Tenant } = useAuth();
-  const { permission, loading }: any = useRole();
-  const navigate = useNavigate();
+function RoleAccess2({ viewPermission, children }: RoleAccess2Props) {
+  const { user } = useAuth();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate("/login", { state: { from: "" } });
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
-  };
+  const role = user?.role;
 
-  if (loading) {
-    return <Loader />;
-  }
+  if (viewPermission === "allow_both") return <>{children}</>;
 
-  const isAuthorized = viewPermission
-    ? permission?.[viewPermission] || ["allow_both"].includes(viewPermission)
-    : false;
+  if (viewPermission === role) return <>{children}</>;
 
-  return <>{children}</>;
+  return <Navigate to="/maintenance/404" replace />;
 }
 
 export default RoleAccess2;

@@ -49,7 +49,7 @@ const pages: any = {
   type: "group",
   children: [
     {
-      id: "Dashboard",
+      id: "DASHBOARD",
       title: <FormattedMessage id="Dashboard" />,
       type: "item",
       url: "/dashboard",
