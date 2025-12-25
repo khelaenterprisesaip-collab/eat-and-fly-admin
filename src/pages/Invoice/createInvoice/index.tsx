@@ -47,8 +47,6 @@ const InvoiceSchema = z.object({
     })
   ),
   subTotal: z.number(),
-
-  // ---- CGST & IGST allow blank, become 0 ----
   cgst: z.preprocess((v) => {
     if (v === "" || v === null || v === undefined) return 0;
     return Number(v);
@@ -59,7 +57,6 @@ const InvoiceSchema = z.object({
     return Number(v);
   }, z.number()),
 
-  // ---- DISCOUNT validation 1 - 100 BUT allow blank typing ---
   discount: z.preprocess(
     (v) => {
       if (v === "" || v === null || v === undefined) return "";
@@ -69,7 +66,7 @@ const InvoiceSchema = z.object({
       z.literal(""),
       z
         .number()
-        .min(1, "Discount must be at least 1%")
+        .min(0, "Discount must be at least 1%")
         .max(100, "Discount cannot exceed 100%"),
     ])
   ),
@@ -91,20 +88,28 @@ export default function CreateInvoice() {
 
   const isMd = useMediaQuery((theme: any) => theme.breakpoints.up("sm"));
 
-  const { register, handleSubmit, control, setValue, watch } =
-    useForm<InvoiceFormType>({
-      resolver: zodResolver(InvoiceSchema),
-      defaultValues: {
-        date: new Date().toISOString().split("T")[0],
-        items: [],
-        subTotal: 0,
-        cgst: 2.5,
-        igst: 2.5,
-        discount: "" as any,
-        totalAmount: 0,
-        paymentMethod: "cash",
-      },
-    });
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<InvoiceFormType>({
+    resolver: zodResolver(InvoiceSchema),
+    defaultValues: {
+      date: new Date().toISOString().split("T")[0],
+      items: [],
+      subTotal: 0,
+      cgst: 2.5,
+      igst: 2.5,
+      discount: "0" as any,
+      totalAmount: 0,
+      paymentMethod: "cash",
+    },
+  });
+
+  console.log("errors", errors);
 
   const { fields, replace } = useFieldArray({
     control,
@@ -119,7 +124,7 @@ export default function CreateInvoice() {
           name: p?.name || "",
           quantity: 0,
           perUnitPrice: p?.pricing?.[0]?.price || 0,
-          totalPrice: 0,
+          totalPrice: 1200,
         }))
       );
     }
@@ -128,7 +133,7 @@ export default function CreateInvoice() {
   const items = watch("items");
 
   const rawDiscount = watch("discount");
-  const discount = rawDiscount === "" ? 0 : Number(rawDiscount || 0); // % discount (validated)
+  const discount = rawDiscount === "" ? 0 : Number(rawDiscount || 0);
 
   const cgst = Number(watch("cgst") || 0);
   const igst = Number(watch("igst") || 0);
@@ -179,7 +184,7 @@ export default function CreateInvoice() {
       paymentMethod: data?.paymentMethod,
     };
 
-    console.log("data", data);
+    console.log("payload", payload);
 
     createInvoice
       .mutateAsync({ body: payload })
@@ -257,11 +262,23 @@ export default function CreateInvoice() {
                             <IconButton
                               size="small"
                               onClick={() => {
-                                const qty = Math.max(
-                                  (watch(`items.${index}.quantity`) || 0) - 1,
-                                  0
+                                const currentQty = Number(
+                                  watch(`items.${index}.quantity`) || 0
                                 );
-                                setValue(`items.${index}.quantity`, qty);
+                                const price = Number(
+                                  watch(`items.${index}.perUnitPrice`) || 0
+                                );
+
+                                const qty = Math.max(currentQty - 1, 0);
+
+                                setValue(`items.${index}.quantity`, qty, {
+                                  shouldDirty: true,
+                                });
+                                setValue(
+                                  `items.${index}.totalPrice`,
+                                  Number((qty * price).toFixed(2)),
+                                  { shouldDirty: true }
+                                );
                               }}
                             >
                               <Remove />
@@ -274,9 +291,23 @@ export default function CreateInvoice() {
                             <IconButton
                               size="small"
                               onClick={() => {
-                                const qty =
-                                  (watch(`items.${index}.quantity`) || 0) + 1;
-                                setValue(`items.${index}.quantity`, qty);
+                                const currentQty = Number(
+                                  watch(`items.${index}.quantity`) || 0
+                                );
+                                const price = Number(
+                                  watch(`items.${index}.perUnitPrice`) || 0
+                                );
+
+                                const qty = currentQty + 1;
+
+                                setValue(`items.${index}.quantity`, qty, {
+                                  shouldDirty: true,
+                                });
+                                setValue(
+                                  `items.${index}.totalPrice`,
+                                  Number((qty * price).toFixed(2)),
+                                  { shouldDirty: true }
+                                );
                               }}
                             >
                               <Add />
@@ -410,14 +441,21 @@ export default function CreateInvoice() {
                     it.quantity > 0 && (
                       <Box
                         key={i}
-                        display="flex"
-                        justifyContent="space-between"
-                        mb={1}
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 40px 70px 70px",
+                          columnGap: 8,
+                          mb: 1,
+                        }}
                       >
                         <span>{it.name}</span>
-                        <span>{it.quantity}</span>
-                        <span>{it.perUnitPrice?.toFixed(2)}</span>
-                        <span>
+                        <span style={{ textAlign: "center" }}>
+                          {it.quantity}
+                        </span>
+                        <span style={{ textAlign: "right" }}>
+                          {it.perUnitPrice?.toFixed(2)}
+                        </span>
+                        <span style={{ textAlign: "right" }}>
                           {(it.quantity * it.perUnitPrice).toFixed(2)}
                         </span>
                       </Box>
