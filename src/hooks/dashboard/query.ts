@@ -3,7 +3,12 @@ import { getDashboardStats } from "services/dashboard";
 
 export const useGetDashboardStats = ({ query }: any) =>
   useQuery({
-    queryKey: ["dashboardStats", query?.startDate, query?.endDate],
+    queryKey: [
+      "dashboardStats",
+      query?.startDate,
+      query?.endDate,
+      query?.paymentMethod,
+    ],
     queryFn: () =>
       getDashboardStats({
         query,

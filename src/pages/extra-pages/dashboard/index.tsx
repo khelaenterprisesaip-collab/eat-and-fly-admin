@@ -39,6 +39,7 @@ export default function Dashboard() {
     query: {
       startDate: dateRange[0].getTime(),
       endDate: dateRange[1].getTime(),
+      // paymentMethod: "cash",
     },
   });
 
