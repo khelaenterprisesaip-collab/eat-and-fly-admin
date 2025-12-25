@@ -18,9 +18,30 @@ import SalesChart from "./Product/graph";
 import StatCard from "./Product/card";
 import useAuth from "hooks/useAuth";
 import RecentInvoices from "./Product/table";
+import { useGetDashboardStats } from "hooks/dashboard/query";
+import { useState } from "react";
+
+const formatCurrency = (amount: any) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [dateRange, setDateRange] = useState([
+    new Date(new Date().setDate(new Date().getDate() - 30)),
+    new Date(),
+  ]);
+  const { data: stats } = useGetDashboardStats({
+    query: {
+      startDate: dateRange[0].getTime(),
+      endDate: dateRange[1].getTime(),
+    },
+  });
+  const { cards, chart } = stats;
   return (
     <>
       <Container maxWidth="xl" sx={{ py: 4 }}>

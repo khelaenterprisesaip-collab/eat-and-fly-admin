@@ -32,7 +32,7 @@ export async function getRevenue({ query }: any) {
 
 export async function getDashboardStats({ query }: any) {
   return callApi({
-    uriEndPoint: { ...dashboard.getDashboardStats.v1 } as ApiEndpoint,
+    uriEndPoint: { ...dashboard.getStats.v1 } as ApiEndpoint,
     query,
   });
 }
