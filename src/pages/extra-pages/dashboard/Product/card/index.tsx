@@ -80,7 +80,7 @@ const StatCard = ({
             >
               {value}
             </Typography>
-            {change && (
+            {/* {change && (
               <Typography
                 variant="body2"
                 sx={{
@@ -95,7 +95,7 @@ const StatCard = ({
                 {changeType === "negative" && "↓"}
                 {change}
               </Typography>
-            )}
+            )} */}
           </Box>
           <Avatar
             sx={{

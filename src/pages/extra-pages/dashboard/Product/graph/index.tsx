@@ -2,7 +2,15 @@ import { Card, CardContent, Typography, Box } from "@mui/material";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 
-const SalesChart = () => {
+const formatCurrency = (amount: any) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+const SalesChart = ({ stats }: any) => {
   const chartOptions: ApexOptions = {
     chart: {
       type: "area",
@@ -32,20 +40,7 @@ const SalesChart = () => {
       enabled: false,
     },
     xaxis: {
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
+      categories: stats?.categories || [],
       axisBorder: {
         show: false,
       },
@@ -67,7 +62,8 @@ const SalesChart = () => {
           fontSize: "12px",
           fontWeight: 500,
         },
-        formatter: (value: number) => `$${(value / 1000).toFixed(0)}k`,
+        formatter: (value: number) =>
+          `${formatCurrency((value / 1000).toFixed(0))}k`,
       },
     },
     grid: {
@@ -94,27 +90,10 @@ const SalesChart = () => {
     tooltip: {
       theme: "light",
       y: {
-        formatter: (value: number) => `$${value.toLocaleString()}`,
+        formatter: (value: number) => `${formatCurrency(value)}`,
       },
     },
   };
-
-  const series = [
-    {
-      name: "Revenue",
-      data: [
-        35000, 42000, 38000, 50000, 48000, 62000, 58000, 72000, 68000, 85000,
-        78000, 92000,
-      ],
-    },
-    // {
-    //   name: "Profit",
-    //   data: [
-    //     12000, 15000, 14000, 18000, 17000, 22000, 21000, 26000, 24000, 31000,
-    //     28000, 35000,
-    //   ],
-    // },
-  ];
 
   return (
     <Card
@@ -147,7 +126,7 @@ const SalesChart = () => {
         </Box>
         <Chart
           options={chartOptions}
-          series={series}
+          series={stats?.series || []}
           type="area"
           height={350}
         />

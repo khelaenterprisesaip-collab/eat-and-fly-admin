@@ -32,7 +32,7 @@ const formatCurrency = (amount: any) => {
 export default function Dashboard() {
   const { user } = useAuth();
   const [dateRange, setDateRange] = useState([
-    new Date(new Date().setDate(new Date().getDate() - 30)),
+    new Date(new Date().setDate(new Date().getDate() - 1000)),
     new Date(),
   ]);
   const { data: stats } = useGetDashboardStats({
@@ -63,7 +63,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} lg={4}>
             <StatCard
               title="Total Invoices"
-              value="1,284"
+              value={stats?.data?.cards?.invoices?.value || "0"}
               icon={Receipt}
               change="+12.5% from last month"
               changeType="positive"
@@ -73,7 +73,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} lg={4}>
             <StatCard
               title="Products"
-              value="156"
+              value={stats?.data?.cards?.products?.value || "0"}
               icon={Inventory}
               change="+8 new this week"
               changeType="positive"
@@ -103,7 +103,7 @@ export default function Dashboard() {
           <Grid item xs={12} sm={6} lg={4}>
             <StatCard
               title="Total Sales"
-              value="$728K"
+              value={formatCurrency(stats?.data?.cards?.sales?.value) || "0"}
               icon={AttachMoney}
               change="+23.1% from last month"
               changeType="positive"
@@ -114,7 +114,7 @@ export default function Dashboard() {
         {/* Charts Row */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12}>
-            <SalesChart />
+            <SalesChart stats={stats?.data?.chart} />
           </Grid>
         </Grid>
 
