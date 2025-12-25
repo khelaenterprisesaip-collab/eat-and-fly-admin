@@ -41,7 +41,9 @@ export default function Dashboard() {
       endDate: dateRange[1].getTime(),
     },
   });
-  const { cards, chart } = stats;
+
+  console.log("stats", stats);
+  // const { cards, chart } = stats;
   return (
     <>
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -78,7 +80,7 @@ export default function Dashboard() {
               gradient="linear-gradient(135deg, #4a6a4d 0%, #5a8f5e 100%)"
             />
           </Grid>
-          <Grid item xs={12} sm={6} lg={4}>
+          {/* <Grid item xs={12} sm={6} lg={4}>
             <StatCard
               title="Staff Members"
               value="89"
@@ -87,8 +89,8 @@ export default function Dashboard() {
               changeType="positive"
               gradient="linear-gradient(135deg, #5a8f5e 0%, #7bb87f 100%)"
             />
-          </Grid>
-          <Grid item xs={12} sm={6} lg={4}>
+          </Grid> */}
+          {/* <Grid item xs={12} sm={6} lg={4}>
             <StatCard
               title="Airports"
               value="42"
@@ -97,7 +99,7 @@ export default function Dashboard() {
               changeType="neutral"
               gradient="linear-gradient(135deg, #334735 0%, #5a8f5e 100%)"
             />
-          </Grid>
+          </Grid> */}
           <Grid item xs={12} sm={6} lg={4}>
             <StatCard
               title="Total Sales"
