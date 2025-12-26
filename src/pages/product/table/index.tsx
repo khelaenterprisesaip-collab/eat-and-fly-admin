@@ -45,7 +45,8 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
     id: "",
   });
   const [startIndex, setStartIndex] = useState(0);
-  const [viewPage, setViewPage] = useState(25);
+  const [viewPage, setViewPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [statusLoading, setStatusLoading] = useState(false);
 
   const [filterValue, setFilterValue] = useState("Columns");
@@ -59,9 +60,8 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
   });
 
   let query: any = {
-    // viewSize: viewPage,
-    // startIndex: columnFilters?.length && columnFilters ? 0 : startIndex,
-    // isActive: value === "active" ? true : false,
+    viewSize: viewPage,
+    page: columnFilters?.length && columnFilters ? 0 : currentPage,
   };
   if (columnFilters && columnFilters.length > 0) {
     const data = columnFilters?.map((ele: any) => {
@@ -440,14 +440,16 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
 
           <Divider />
 
-          <Box sx={{ p: staffData?.count > 25 ? 2 : 0 }}>
+          <Box sx={{ p: staffData?.count > viewPage ? 2 : 0 }}>
             <TablePagination
-              visibility={staffData?.count > 25}
-              totalCount={staffData?.count}
+              visibility={staffData?.total > viewPage}
+              totalCount={staffData?.total}
               startIndex={startIndex}
               setStartIndex={setStartIndex}
               viewPage={viewPage}
               setViewPage={setViewPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
             />
           </Box>
         </Stack>

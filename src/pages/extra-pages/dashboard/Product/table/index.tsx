@@ -34,12 +34,22 @@ const getStatusColor = (status: Invoice["status"]) => {
   }
 };
 
-const RecentInvoices = () => {
+const RecentInvoices = ({ selectedStatus, dateRange }: any) => {
   const {
     data: invoiceData,
     refetch: refetchInvoice,
     isFetching,
-  }: any = useGetInvoices({ query: { page: 1, limit: 10 } });
+  }: any = useGetInvoices({
+    query: {
+      page: 1,
+      limit: 10,
+      startDate: dateRange[0] ? new Date(dateRange[0])?.getTime() : "",
+      endDate: dateRange[1] ? new Date(dateRange[1])?.getTime() : "",
+      ...(selectedStatus?.value !== "all" && {
+        paymentMethod: selectedStatus?.value,
+      }),
+    },
+  });
   return (
     <Card
       elevation={2}

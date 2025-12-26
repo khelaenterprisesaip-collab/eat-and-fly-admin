@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import FormControl from '@mui/material/FormControl';
-import Grid from '@mui/material/Grid';
-import MenuItem from '@mui/material/MenuItem';
-import Pagination from '@mui/material/Pagination';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
+import React, { useEffect, useState } from "react";
+import FormControl from "@mui/material/FormControl";
+import Grid from "@mui/material/Grid";
+import MenuItem from "@mui/material/MenuItem";
+import Pagination from "@mui/material/Pagination";
+import Select, { SelectChangeEvent } from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
 interface TablePaginationProps {
   startIndex: number;
@@ -14,6 +14,8 @@ interface TablePaginationProps {
   setViewPage: (viewPage: number) => void;
   totalCount: number;
   visibility?: any;
+  currentPage: number;
+  setCurrentPage?: any;
   renderCurrentPage?: any;
 }
 
@@ -24,13 +26,17 @@ const TablePagination = ({
   setViewPage,
   totalCount,
   visibility,
-  renderCurrentPage
+  renderCurrentPage,
+  currentPage,
+  setCurrentPage,
 }: TablePaginationProps) => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [open, setOpen] = React.useState(false);
   let options = [10, 25, 50, 100];
 
-  const handleChangePagination = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handleChangePagination = (
+    event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
     setCurrentPage(value);
     setStartIndex(viewPage * (value - 1));
   };
@@ -57,8 +63,8 @@ const TablePagination = ({
       container
       alignItems="center"
       justifyContent="space-between"
-      sx={{ width: 'auto' }}
-      visibility={visibility ? 'visible' : 'hidden'}
+      sx={{ width: "auto" }}
+      visibility={visibility ? "visible" : "hidden"}
     >
       <Grid item>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -75,7 +81,7 @@ const TablePagination = ({
                 value={viewPage}
                 onChange={handleChange}
                 size="small"
-                sx={{ '& .MuiSelect-select': { py: 0.75, px: 1.25 } }}
+                sx={{ "& .MuiSelect-select": { py: 0.75, px: 1.25 } }}
               >
                 {options?.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -88,17 +94,18 @@ const TablePagination = ({
         </Stack>
       </Grid>
 
-      <Stack direction={'row'} spacing={1} alignItems="center">
+      <Stack direction={"row"} spacing={1} alignItems="center">
         {totalCount > 0 ? (
           <Typography variant="caption" color="secondary">
-            Showing from {totalCount === 0 ? 0 : startIndex + 1} to {totalCount === 0 ? 0 : Math.min(startIndex + viewPage, totalCount)} of
-            total {totalCount} records
+            Showing from {totalCount === 0 ? 0 : startIndex + 1} to{" "}
+            {totalCount === 0 ? 0 : Math.min(startIndex + viewPage, totalCount)}{" "}
+            of total {totalCount} records
           </Typography>
         ) : null}
         {Math.ceil((totalCount ?? 0) / viewPage) ? (
           <Grid item sx={{ mt: { xs: 2, sm: 0 } }}>
             <Pagination
-              sx={{ '& .MuiPaginationItem-root': { my: 0.5 } }}
+              sx={{ "& .MuiPaginationItem-root": { my: 0.5 } }}
               count={Math.ceil(totalCount / viewPage)}
               page={currentPage}
               onChange={handleChangePagination}

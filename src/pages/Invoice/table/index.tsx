@@ -18,7 +18,6 @@ import TableRow from "@mui/material/TableRow";
 import ScrollX from "components/ScrollX";
 import { Box, Stack, useTheme } from "@mui/material";
 import { Divider } from "@mui/material";
-
 import TablePagination from "components/third-party/TablePagination";
 import MenuList from "components/ui/menuList";
 import TableLoading from "components/ui/TableLoading";
@@ -29,18 +28,15 @@ import EmptyTable from "components/ui/EmptyTable";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
 import { CloseIcon } from "assets/svg/CloseIcon";
 import SelectColumnVisibility from "components/third-party/SelectColumnVisibility";
-import { Edit, Eye } from "lucide-react";
-import { useGetProduct } from "hooks/product/query";
+import { Eye } from "lucide-react";
 import { DeleteIcon } from "assets/svg/Delete";
 import ConfirmModal from "components/ui/confrimModal";
-import { deleteProduct } from "services/product";
 import { useGetInvoices } from "hooks/Invoice/query";
 import dayjs from "dayjs";
 import { formatINR } from "utils/trimFc";
 import ThemeButton from "components/ui/Button";
 import { deleteInvoice } from "services/invoice";
 import PdfDialog from "../pdf";
-import { width } from "@mui/system";
 
 const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   const theme = useTheme();
@@ -48,12 +44,13 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
 
   const [columnFilters, setColumnFilters] = useState<any>([]);
   const [open, setOpen] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ✅ Renamed state
   const [selectedInvoice, setSelectedInvoice] = useState<any>({ id: "" });
 
-  const [startIndex, setStartIndex] = useState(0);
-  const [viewPage, setViewPage] = useState(25);
+  const [startIndex, setStartIndex] = useState(1);
+  const [viewPage, setViewPage] = useState(10);
   const [statusLoading, setStatusLoading] = useState(false);
   const [pdfModal, setPdfModal] = useState({ visible: false, url: "" });
 
@@ -68,13 +65,16 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
     return savedVisibility ? JSON.parse(savedVisibility) : {};
   });
 
-  let query: any = {};
+  let query: any = {
+    limit: viewPage,
+    page: columnFilters?.length && columnFilters ? 1 : currentPage,
+  };
 
   if (columnFilters && columnFilters.length > 0) {
     const data = columnFilters?.map((ele: any) => {
       return { [ele?.id]: ele?.value };
     });
-    data.forEach((obj: any) => {
+    data?.forEach((obj: any) => {
       let key = Object.keys(obj)[0];
       let value = obj[key];
       query[key] = value;
@@ -355,14 +355,16 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
 
           <Divider />
 
-          <Box sx={{ p: invoiceData?.count > 25 ? 2 : 0 }}>
+          <Box sx={{ p: invoiceData?.total > viewPage ? 2 : 0 }}>
             <TablePagination
-              visibility={invoiceData?.count > 25}
-              totalCount={invoiceData?.count}
+              visibility={invoiceData?.total > viewPage}
+              totalCount={invoiceData?.total}
               startIndex={startIndex}
               setStartIndex={setStartIndex}
               viewPage={viewPage}
               setViewPage={setViewPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
             />
           </Box>
         </Stack>
