@@ -34,6 +34,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import FormLabels from "components/ui/FormLabel";
 import Input from "components/ui/Input";
+import dayjs from "dayjs";
 
 // ---------------- VALIDATION ----------------
 const InvoiceSchema = z.object({
@@ -172,7 +173,7 @@ export default function CreateInvoice() {
 
     const payload = {
       airport: user?.airport,
-      dateTime: Date.now(),
+      dateTime: dayjs(data?.date).unix(),
       subTotal: data.subTotal,
       cgstPercentage: cgst,
       igstPercentage: igst,
@@ -223,7 +224,7 @@ export default function CreateInvoice() {
                 <Grid item xs={12}>
                   <FormLabels>Date</FormLabels>
                   <TextField
-                    type="date"
+                    type="datetime-local"
                     fullWidth
                     size="small"
                     {...register("date")}
