@@ -1,23 +1,27 @@
 import { useEffect, useState } from "react";
 
 const useNetworkStatus = () => {
-  const [isOnline, setOnline] = useState<boolean>(true);
+  // Initialize with actual network status, not hardcoded true
+  const [isOnline, setOnline] = useState<boolean>(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
 
   const updateNetworkStatus = () => {
     setOnline(navigator.onLine);
   };
 
   useEffect(() => {
-    window.addEventListener("load", updateNetworkStatus);
+    // Check status immediately on mount
+    updateNetworkStatus();
+
     window.addEventListener("online", updateNetworkStatus);
     window.addEventListener("offline", updateNetworkStatus);
 
     return () => {
-      window.removeEventListener("load", updateNetworkStatus);
       window.removeEventListener("online", updateNetworkStatus);
       window.removeEventListener("offline", updateNetworkStatus);
     };
-  }, [navigator.onLine]);
+  }, []);
 
   return { isOnline };
 };
