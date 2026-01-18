@@ -14,7 +14,7 @@ interface TablePaginationProps {
   setViewPage: (viewPage: number) => void;
   totalCount: number;
   visibility?: any;
-  currentPage: number;
+  currentPage?: number;
   setCurrentPage?: any;
   renderCurrentPage?: any;
 }

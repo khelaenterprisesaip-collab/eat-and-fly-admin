@@ -18,9 +18,10 @@ import {
   MenuItem,
   Select,
   IconButton,
+  Alert,
 } from "@mui/material";
 
-import { Add, Remove, Print as PrintIcon } from "@mui/icons-material";
+import { Add, Remove, Print as PrintIcon, CloudOff as CloudOffIcon } from "@mui/icons-material";
 
 import ThemeButton from "components/ui/Button";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
@@ -30,11 +31,13 @@ import { openSnackbar } from "api/snackbar";
 import useAuth from "hooks/useAuth";
 import { useGetAirportProduct } from "hooks/product/query";
 import { useCreateInvoice } from "hooks/Invoice/mutation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import FormLabels from "components/ui/FormLabel";
 import Input from "components/ui/Input";
 import dayjs from "dayjs";
+import useNetworkStatus from "hooks/useNetwork";
+import { addPendingInvoice } from "utils/offlineInvoiceStorage";
 
 // ---------------- VALIDATION ----------------
 const InvoiceSchema = z.object({
@@ -82,8 +85,11 @@ export default function CreateInvoice() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const createInvoice = useCreateInvoice();
+  const { isOnline } = useNetworkStatus();
+  const [isSavingOffline, setIsSavingOffline] = useState(false);
+  const [cachedProducts, setCachedProducts] = useState<any[]>([]);
 
-  const { data: productData }: any = useGetAirportProduct({
+  const { data: productData, isLoading: isLoadingProducts }: any = useGetAirportProduct({
     query: { airport: user?.airport },
   });
 
@@ -117,19 +123,43 @@ export default function CreateInvoice() {
     name: "items",
   });
 
-  // load product list
+  // Cache products in localStorage for offline use
   useEffect(() => {
     if (productData?.data?.length) {
+      localStorage.setItem('cachedProducts', JSON.stringify(productData.data));
       replace(
         productData.data.map((p: any) => ({
           name: p?.name || "",
           quantity: 0,
           perUnitPrice: p?.pricing?.[0]?.price || 0,
-          totalPrice: 1200,
+          totalPrice: 0,
         }))
       );
     }
   }, [productData, replace]);
+
+  // Load cached products when offline
+  useEffect(() => {
+    if (!isOnline && !productData?.data?.length) {
+      const cached = localStorage.getItem('cachedProducts');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setCachedProducts(parsed);
+          replace(
+            parsed.map((p: any) => ({
+              name: p?.name || "",
+              quantity: 0,
+              perUnitPrice: p?.pricing?.[0]?.price || 0,
+              totalPrice: 0,
+            }))
+          );
+        } catch (e) {
+          console.error('Error loading cached products:', e);
+        }
+      }
+    }
+  }, [isOnline, productData?.data?.length, replace]);
 
   const items = watch("items");
 
@@ -187,6 +217,25 @@ export default function CreateInvoice() {
 
     console.log("payload", payload);
 
+    // Handle offline case - save to localStorage
+    if (!isOnline) {
+      setIsSavingOffline(true);
+      try {
+        addPendingInvoice(payload as any);
+        openSnackbar({
+          open: true,
+          message: "You're offline. Invoice saved locally and will sync when you're back online.",
+          variant: "alert",
+          alert: { color: "info" },
+        } as any);
+        navigate("/invoices");
+      } finally {
+        setIsSavingOffline(false);
+      }
+      return;
+    }
+
+    // Online - proceed with API call
     createInvoice
       .mutateAsync({ body: payload })
       .then(() => {
@@ -208,11 +257,43 @@ export default function CreateInvoice() {
       });
   };
 
-  if (!productData?.data) return null;
+  // Show loading or offline message if no products available
+  const hasProducts = productData?.data?.length || cachedProducts.length;
+
+  if (isLoadingProducts && isOnline) {
+    return (
+      <Container maxWidth="xl">
+        <Typography>Loading products...</Typography>
+      </Container>
+    );
+  }
+
+  if (!hasProducts && !isOnline) {
+    return (
+      <Container maxWidth="xl">
+        <Alert severity="error" icon={<CloudOffIcon />}>
+          You're offline and no cached products are available. Please connect to the internet to load products first, then you can create invoices offline.
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!hasProducts) return null;
 
   return (
     <Container maxWidth="xl">
       <form onSubmit={handleSubmit(onSubmit)}>
+        {/* Offline Banner */}
+        {!isOnline && (
+          <Alert
+            severity="warning"
+            icon={<CloudOffIcon />}
+            sx={{ mb: 2 }}
+          >
+            You're offline. Invoices created now will be saved locally and synced automatically when you're back online.
+          </Alert>
+        )}
+
         <Stack spacing={2} mb={2}>
           <Typography variant={isMd ? "h3" : "h4"}>Create Invoice</Typography>
         </Stack>
@@ -391,7 +472,7 @@ export default function CreateInvoice() {
               <ThemeButton
                 variant="contained"
                 type="submit"
-                loading={createInvoice?.isPending}
+                loading={createInvoice?.isPending || isSavingOffline}
                 startIcon={<PrintIcon />}
                 buttonStyle={{ width: "100%", mt: 3 }}
               >
