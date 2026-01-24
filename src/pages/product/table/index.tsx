@@ -267,7 +267,7 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
         },
       },
     ],
-    []
+    [],
   );
 
   useEffect(() => {
@@ -302,7 +302,7 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
           : "#",
       // @ts-ignore
       key: columns.columnDef.accessorKey,
-    })
+    }),
   );
 
   const tabs = [
@@ -357,7 +357,7 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
                               ? null
                               : flexRender(
                                   header.column.columnDef.header,
-                                  header.getContext()
+                                  header.getContext(),
                                 )}
                           </TableCell>
                         </>
@@ -405,7 +405,7 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
                           sx={{
                             fontSize: "12px",
                             textAlign: ["application", "action"]?.includes(
-                              cell?.column?.id
+                              cell?.column?.id,
                             )
                               ? "center"
                               : "left",
@@ -420,7 +420,7 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
                           <Box sx={{ minWidth: cell.column.columnDef.minSize }}>
                             {flexRender(
                               cell.column.columnDef.cell,
-                              cell.getContext()
+                              cell.getContext(),
                             )}
                           </Box>
                         </TableCell>
@@ -440,10 +440,12 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
 
           <Divider />
 
-          <Box sx={{ p: staffData?.count > viewPage ? 2 : 0 }}>
+          <Box
+            sx={{ p: staffData?.pagination?.totalProducts > viewPage ? 2 : 0 }}
+          >
             <TablePagination
-              visibility={staffData?.total > viewPage}
-              totalCount={staffData?.total}
+              visibility={staffData?.pagination?.totalProducts > viewPage}
+              totalCount={staffData?.pagination?.totalProducts}
               startIndex={startIndex}
               setStartIndex={setStartIndex}
               viewPage={viewPage}

@@ -21,7 +21,12 @@ import {
   Alert,
 } from "@mui/material";
 
-import { Add, Remove, Print as PrintIcon, CloudOff as CloudOffIcon } from "@mui/icons-material";
+import {
+  Add,
+  Remove,
+  Print as PrintIcon,
+  CloudOff as CloudOffIcon,
+} from "@mui/icons-material";
 
 import ThemeButton from "components/ui/Button";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
@@ -48,7 +53,7 @@ const InvoiceSchema = z.object({
       quantity: z.number(),
       perUnitPrice: z.number(),
       totalPrice: z.number(),
-    })
+    }),
   ),
   subTotal: z.number(),
   cgst: z.preprocess((v) => {
@@ -72,7 +77,7 @@ const InvoiceSchema = z.object({
         .number()
         .min(0, "Discount must be at least 1%")
         .max(100, "Discount cannot exceed 100%"),
-    ])
+    ]),
   ),
 
   totalAmount: z.number(),
@@ -89,9 +94,10 @@ export default function CreateInvoice() {
   const [isSavingOffline, setIsSavingOffline] = useState(false);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
 
-  const { data: productData, isLoading: isLoadingProducts }: any = useGetAirportProduct({
-    query: { airport: user?.airport },
-  });
+  const { data: productData, loading: isLoadingProducts }: any =
+    useGetAirportProduct({
+      query: { airport: user?.airport, limit: 40 },
+    });
 
   const isMd = useMediaQuery((theme: any) => theme.breakpoints.up("sm"));
 
@@ -126,14 +132,14 @@ export default function CreateInvoice() {
   // Cache products in localStorage for offline use
   useEffect(() => {
     if (productData?.data?.length) {
-      localStorage.setItem('cachedProducts', JSON.stringify(productData.data));
+      localStorage.setItem("cachedProducts", JSON.stringify(productData.data));
       replace(
         productData.data.map((p: any) => ({
           name: p?.name || "",
           quantity: 0,
           perUnitPrice: p?.pricing?.[0]?.price || 0,
-          totalPrice: 0,
-        }))
+          totalPrice: 1200,
+        })),
       );
     }
   }, [productData, replace]);
@@ -141,7 +147,7 @@ export default function CreateInvoice() {
   // Load cached products when offline
   useEffect(() => {
     if (!isOnline && !productData?.data?.length) {
-      const cached = localStorage.getItem('cachedProducts');
+      const cached = localStorage.getItem("cachedProducts");
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -152,10 +158,10 @@ export default function CreateInvoice() {
               quantity: 0,
               perUnitPrice: p?.pricing?.[0]?.price || 0,
               totalPrice: 0,
-            }))
+            })),
           );
         } catch (e) {
-          console.error('Error loading cached products:', e);
+          console.error("Error loading cached products:", e);
         }
       }
     }
@@ -171,7 +177,7 @@ export default function CreateInvoice() {
 
   const subTotal = items.reduce(
     (sum, it) => sum + it.quantity * it.perUnitPrice,
-    0
+    0,
   );
 
   // percentage discount
@@ -224,7 +230,8 @@ export default function CreateInvoice() {
         addPendingInvoice(payload as any);
         openSnackbar({
           open: true,
-          message: "You're offline. Invoice saved locally and will sync when you're back online.",
+          message:
+            "You're offline. Invoice saved locally and will sync when you're back online.",
           variant: "alert",
           alert: { color: "info" },
         } as any);
@@ -272,7 +279,9 @@ export default function CreateInvoice() {
     return (
       <Container maxWidth="xl">
         <Alert severity="error" icon={<CloudOffIcon />}>
-          You're offline and no cached products are available. Please connect to the internet to load products first, then you can create invoices offline.
+          You're offline and no cached products are available. Please connect to
+          the internet to load products first, then you can create invoices
+          offline.
         </Alert>
       </Container>
     );
@@ -285,12 +294,9 @@ export default function CreateInvoice() {
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* Offline Banner */}
         {!isOnline && (
-          <Alert
-            severity="warning"
-            icon={<CloudOffIcon />}
-            sx={{ mb: 2 }}
-          >
-            You're offline. Invoices created now will be saved locally and synced automatically when you're back online.
+          <Alert severity="warning" icon={<CloudOffIcon />} sx={{ mb: 2 }}>
+            You're offline. Invoices created now will be saved locally and
+            synced automatically when you're back online.
           </Alert>
         )}
 
@@ -345,10 +351,10 @@ export default function CreateInvoice() {
                               size="small"
                               onClick={() => {
                                 const currentQty = Number(
-                                  watch(`items.${index}.quantity`) || 0
+                                  watch(`items.${index}.quantity`) || 0,
                                 );
                                 const price = Number(
-                                  watch(`items.${index}.perUnitPrice`) || 0
+                                  watch(`items.${index}.perUnitPrice`) || 0,
                                 );
 
                                 const qty = Math.max(currentQty - 1, 0);
@@ -359,7 +365,7 @@ export default function CreateInvoice() {
                                 setValue(
                                   `items.${index}.totalPrice`,
                                   Number((qty * price).toFixed(2)),
-                                  { shouldDirty: true }
+                                  { shouldDirty: true },
                                 );
                               }}
                             >
@@ -374,10 +380,10 @@ export default function CreateInvoice() {
                               size="small"
                               onClick={() => {
                                 const currentQty = Number(
-                                  watch(`items.${index}.quantity`) || 0
+                                  watch(`items.${index}.quantity`) || 0,
                                 );
                                 const price = Number(
-                                  watch(`items.${index}.perUnitPrice`) || 0
+                                  watch(`items.${index}.perUnitPrice`) || 0,
                                 );
 
                                 const qty = currentQty + 1;
@@ -388,7 +394,7 @@ export default function CreateInvoice() {
                                 setValue(
                                   `items.${index}.totalPrice`,
                                   Number((qty * price).toFixed(2)),
-                                  { shouldDirty: true }
+                                  { shouldDirty: true },
                                 );
                               }}
                             >
@@ -541,7 +547,7 @@ export default function CreateInvoice() {
                           {(it.quantity * it.perUnitPrice).toFixed(2)}
                         </span>
                       </Box>
-                    )
+                    ),
                 )}
               </Box>
 
