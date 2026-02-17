@@ -28,15 +28,15 @@ const InvoiceMainPage = () => {
         primaryAction={
           <Stack direction="row" spacing={1}>
             <Link to="/invoice/create">
-              {user?.role === UserRole?.staff && (
-                <ThemeButton
-                  variant="contained"
-                  size="small"
-                  startIcon={!isMobile && <PlusIcon />}
-                >
-                  {isMobile ? <PlusIcon /> : "Create Invoice"}
-                </ThemeButton>
-              )}
+              {/* {user?.role === UserRole?.staff && ( */}
+              <ThemeButton
+                variant="contained"
+                size="small"
+                startIcon={!isMobile && <PlusIcon />}
+              >
+                {isMobile ? <PlusIcon /> : "Create Invoice"}
+              </ThemeButton>
+              {/* )} */}
             </Link>
 
             <ThemeButton

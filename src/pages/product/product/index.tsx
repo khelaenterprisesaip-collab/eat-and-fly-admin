@@ -22,6 +22,7 @@ import { InfoCircle } from "iconsax-react";
 import FormLabels from "components/ui/FormLabel";
 import { createProduct, getSingleFetch, updateProduct } from "services/product";
 import { IndianRupee } from "lucide-react";
+import { useGetCategory } from "hooks/category/query";
 
 // -------------------- SCHEMA -------------------- //
 const pricingSchema = z.object({
@@ -43,6 +44,7 @@ const formSchema = z.object({
     .min(1, { message: "Add at least one pricing entry." }),
   isAvailable: z.boolean().default(true),
   itemCode: z.string().min(1, { message: "Item code is required." }),
+  categoryId: z.string().min(1, { message: "Category is required." }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,6 +55,10 @@ const AddProduct: React.FC = () => {
   const { productId } = useParams();
   const isMd = useMediaQuery((theme: any) => theme.breakpoints.up("sm"));
   const [loading, setLoading] = useState(false);
+
+  // Fetch categories
+  const { data: categoryData } = useGetCategory({ query: { viewSize: 1000 } });
+  const categories = categoryData?.data || [];
 
   const {
     control,
@@ -70,6 +76,7 @@ const AddProduct: React.FC = () => {
       pricing: [],
       isAvailable: true,
       itemCode: "",
+      categoryId: "",
     },
   });
 
@@ -172,7 +179,46 @@ const AddProduct: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  control={control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <>
+                      <FormLabels required>Category</FormLabels>
+                      <Autocomplete
+                        options={categories}
+                        getOptionLabel={(option: any) => option.name || ""}
+                        value={
+                          categories.find((c: any) => c.uuid === field.value) ||
+                          null
+                        }
+                        onChange={(_, value) =>
+                          field.onChange(value ? value.uuid : "")
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Select Category"
+                            error={!!errors.categoryId}
+                            helperText={errors.categoryId?.message}
+                            sx={{
+                              "& .MuiOutlinedInput-notchedOutline legend": {
+                                display: "none",
+                              },
+                              "& .MuiOutlinedInput-notchedOutline": {
+                                top: 0,
+                              },
+                            }}
+                          />
+                        )}
+                      />
+                    </>
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
                 <Input
                   required
                   control={control}
@@ -223,7 +269,9 @@ const AddProduct: React.FC = () => {
                 <Grid key={field.id} item xs={12} sm={6}>
                   <Input
                     control={control}
-                    label={`Price (${field.airport.charAt(0).toUpperCase() + field.airport.slice(1)})`}
+                    label={`Price (${field.airport.charAt(0).toUpperCase() +
+                      field.airport.slice(1)
+                      })`}
                     name={`pricing.${index}.price`}
                     placeholder="Enter price"
                     startAdornment={<IndianRupee />}

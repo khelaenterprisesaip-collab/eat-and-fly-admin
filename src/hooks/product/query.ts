@@ -14,7 +14,7 @@ export const useGetProduct = ({ query }: any) =>
 
 export const useGetAirportProduct = ({ query }: any) =>
   useQuery({
-    queryKey: ["airportProduct"],
+    queryKey: ["airportProduct", query?.categoryId],
     queryFn: () =>
       fetchAirportProduct({
         query,

@@ -18,6 +18,9 @@ import AddProduct from "pages/product/product";
 import CreateInvoice from "pages/Invoice/createInvoice";
 import InvoiceMainPage from "pages/Invoice";
 
+const CategoryMainPage = Loadable(lazy(() => import("pages/category")));
+const AddCategory = Loadable(lazy(() => import("pages/category/category-add")));
+
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
 );
@@ -123,6 +126,27 @@ const MainRoutes: any = {
         {
           path: "/product/update/:productId",
           element: <AddProduct />,
+        },
+      ],
+    },
+
+    {
+      path: "/",
+      element: <DashboardLayout allowPermission={"admin"} />,
+
+      children: [
+        {
+          path: "categories",
+          element: <CategoryMainPage />,
+        },
+
+        {
+          path: "/category/add",
+          element: <AddCategory />,
+        },
+        {
+          path: "/category/update/:id",
+          element: <AddCategory />,
         },
       ],
     },

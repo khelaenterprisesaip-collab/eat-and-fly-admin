@@ -6,6 +6,7 @@ export const hostname = () => {
   switch (window.location.hostname) {
     case "localhost":
       hostUrl = "http://localhost:4001/api";
+      // hostUrl = "https://api.khelaenterprises.com/api";
       break;
 
     default:
@@ -52,18 +53,18 @@ export const makeUrl = ({
 }): string => {
   const queryString = query
     ? Object?.keys(query)
-        .map(
-          (key: any) =>
-            `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`
-        )
-        .join("&")
+      .map(
+        (key: any) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`,
+      )
+      .join("&")
     : "";
   return `${uri
     .split("/")
     .map((param) =>
       param.charAt(0) === ":" && pathParams
         ? encodeURI(pathParams[param.slice(1)])
-        : param
+        : param,
     )
     .join("/")}${queryString ? `?${queryString}` : ""}`;
 };

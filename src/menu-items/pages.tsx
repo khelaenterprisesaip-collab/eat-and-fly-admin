@@ -39,6 +39,7 @@ const icons = {
   Consignees: Box,
   customer: People,
   staff: ShoppingCart,
+  category: DiscountShape,
 };
 
 // ==============================|| xMENU ITEMS - PAGES ||============================== //
@@ -62,6 +63,14 @@ const pages: any = {
       url: "/staff",
       icon: icons.student,
       activeIcon: icons.student,
+    },
+    {
+      id: "CATEGORY",
+      title: <FormattedMessage id="Category" />,
+      type: "item",
+      url: "/categories",
+      icon: icons.category,
+      activeIcon: icons.category,
     },
     {
       id: "PRODUCT",

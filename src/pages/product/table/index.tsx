@@ -35,11 +35,21 @@ import ConfirmModal from "components/ui/confrimModal";
 import { deleteProduct } from "services/product";
 import { airportCities } from "../product/constant";
 
+import { useGetCategory } from "hooks/category/query";
+
 const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [columnFilters, setColumnFilters] = useState<any>([]);
   const [open, setOpen] = useState<boolean>(false);
+
+  // Fetch categories for filter
+  const { data: categoryData } = useGetCategory({ query: { viewSize: 1000 } });
+  const categories = categoryData?.data || [];
+
+  const categoryOptions = useMemo(() =>
+    categories.map((cat: any) => ({ label: cat.name, value: cat.uuid || cat._id })),
+    [categories]);
 
   const [recruiterStatus, setRecruiterStatus] = useState<any>({
     id: "",
@@ -176,7 +186,25 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
         cell: (cell: any) => `${cell?.row?.original?.name || ""}  `,
         minSize: 120,
       },
-
+      {
+        header: "Category",
+        accessorKey: "categoryId",
+        meta: {
+          filterVariant: "select",
+          filterOptions: categoryOptions,
+        },
+        minSize: 150,
+        cell: (cell: any) => {
+          const categoryId = cell?.row?.original?.categoryId;
+          // Best effort display: if populated object, show name. 
+          // If just ID, show ID (or try to look up from options if needed, but row original is safer)
+          // Assuming backend might populate 'categoryId' as an object OR 'category' field.
+          // Based on user prompt "Populate category details if needed (optional)", we check both.
+          return categoryId?.name || (typeof categoryId === 'string' ?
+            categoryOptions.find((c: any) => c.value === categoryId)?.label || "--"
+            : "--");
+        },
+      },
       {
         header: "Description",
         accessorKey: "description",
@@ -267,7 +295,7 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
         },
       },
     ],
-    [],
+    [categoryOptions]
   );
 
   useEffect(() => {
@@ -356,9 +384,9 @@ const ProductTable = ({ value, searchText, drawer, setDrawer }: any) => {
                             {header.isPlaceholder
                               ? null
                               : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
                           </TableCell>
                         </>
                       ))}
