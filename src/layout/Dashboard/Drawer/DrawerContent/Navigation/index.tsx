@@ -18,7 +18,7 @@ import { useGetMenuMaster } from "api/menu";
 
 // types
 import { NavItemType } from "types/menu";
-import { useRole } from "hooks/useAuth";
+import useAuth, { useRole } from "hooks/useAuth";
 
 // ==============================|| DRAWER CONTENT - NAVIGATION ||============================== //
 
@@ -34,11 +34,24 @@ export default function Navigation() {
   const [menuItems, setMenuItems] = useState<{ items: NavItemType[] }>({
     items: [],
   });
+  const { user } = useAuth();
 
   useLayoutEffect(() => {
-    setMenuItems(menuItem);
+    let filteredMenu = { ...menuItem };
+    
+    if (user?.role === "staff") {
+      filteredMenu = {
+        ...menuItem,
+        items: menuItem.items.map((group: any) => ({
+          ...group,
+          children: group.children?.filter((item: any) => item.id !== "CATEGORY"),
+        })),
+      };
+    }
+    
+    setMenuItems(filteredMenu);
     // eslint-disable-next-line
-  }, [menuItem]);
+  }, [menuItem, user?.role]);
 
   const isHorizontal =
     menuOrientation === MenuOrientation.HORIZONTAL && !downLG;

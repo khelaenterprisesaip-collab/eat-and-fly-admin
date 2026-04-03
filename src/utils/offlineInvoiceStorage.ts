@@ -23,7 +23,10 @@ export interface PendingInvoice {
             perUnitPrice: number;
             totalPrice: number;
         }>;
-        paymentMethod: string;
+        payments: Array<{
+            method: string;
+            amount: number;
+        }>;
     };
     createdAt: number; // Timestamp when created offline
     syncAttempts: number; // Number of sync attempts

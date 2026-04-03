@@ -85,7 +85,17 @@ const InvoiceSchema = z.object({
   ),
 
   totalAmount: z.number(),
-  paymentMethod: z.enum(["cash", "card", "online"]),
+  payments: z
+    .array(
+      z.object({
+        method: z.enum(["cash", "card", "online"]),
+        amount: z.preprocess((v) => {
+          if (v === "" || v === null || v === undefined) return 0;
+          return Number(v);
+        }, z.number().min(0)),
+      }),
+    )
+    .min(1, "At least one payment method is required"),
 });
 
 type InvoiceFormType = z.infer<typeof InvoiceSchema>;
@@ -123,24 +133,33 @@ export default function CreateInvoice() {
     setValue,
     watch,
     formState: { errors },
-    getValues
+    getValues,
   } = useForm<InvoiceFormType>({
     resolver: zodResolver(InvoiceSchema),
     defaultValues: {
-      date: new Date().toISOString().split("T")[0],
+      date: dayjs().format("YYYY-MM-DDTHH:mm"),
       items: [],
       subTotal: 0,
       cgst: 2.5,
       igst: 2.5,
       discount: "0" as any,
       totalAmount: 0,
-      paymentMethod: "cash",
+      payments: [{ method: "cash", amount: 0 }],
     },
   });
 
   const { fields, replace, append, remove } = useFieldArray({
     control,
     name: "items",
+  });
+
+  const {
+    fields: paymentFields,
+    append: appendPayment,
+    remove: removePayment,
+  } = useFieldArray({
+    control,
+    name: "payments",
   });
 
   // Cache products in localStorage for offline use
@@ -208,6 +227,17 @@ export default function CreateInvoice() {
       return;
     }
 
+    const totalPayments = data.payments.reduce((sum, p) => sum + p.amount, 0);
+    if (Math.abs(totalPayments - data.totalAmount) > 0.01) {
+      openSnackbar({
+        open: true,
+        message: "Total payment splits must exactly match the grand total.",
+        variant: "alert",
+        alert: { color: "error" },
+      } as any);
+      return;
+    }
+
     const payload = {
       airport: user?.airport,
       dateTime: dayjs(data?.date).unix(),
@@ -219,7 +249,7 @@ export default function CreateInvoice() {
       totalAmount: data.totalAmount,
       status: "paid",
       items: data.items.filter((x) => x.quantity > 0),
-      paymentMethod: data?.paymentMethod,
+      payments: data.payments,
     };
 
     // Handle offline case - save to localStorage
@@ -269,8 +299,10 @@ export default function CreateInvoice() {
 
   if (isLoadingProducts && isOnline) {
     return (
-      <Container maxWidth="xl" sx={{ mt: 3, textAlign: 'center' }}>
-        <Typography variant="body1" color="text.secondary">Loading products...</Typography>
+      <Container maxWidth="xl" sx={{ mt: 3, textAlign: "center" }}>
+        <Typography variant="body1" color="text.secondary">
+          Loading products...
+        </Typography>
       </Container>
     );
   }
@@ -299,17 +331,24 @@ export default function CreateInvoice() {
           <Stack direction="row" alignItems="center" spacing={1}>
             <ReceiptLong color="primary" fontSize="large" />
             <Box>
-              <Typography variant={isMd ? "h4" : "h5"} fontWeight={700}>Create Invoice</Typography>
-              <Typography variant="body2" color="text.secondary">Fill in the details below to generate a new invoice.</Typography>
+              <Typography variant={isMd ? "h4" : "h5"} fontWeight={700}>
+                Create Invoice
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Fill in the details below to generate a new invoice.
+              </Typography>
             </Box>
           </Stack>
         </Stack>
 
         <Grid container spacing={3}>
-
           {/* LEFT COLUMN: Form Inputs */}
           <Grid item xs={12} lg={7}>
-            <Paper elevation={0} variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+            <Paper
+              elevation={0}
+              variant="outlined"
+              sx={{ p: 3, borderRadius: 2 }}
+            >
               <Grid container spacing={2} mb={3}>
                 <Grid item xs={12} sm={6}>
                   <FormLabels>Invoice Date</FormLabels>
@@ -319,7 +358,7 @@ export default function CreateInvoice() {
                     size="small"
                     {...register("date")}
                     sx={{
-                      '& .MuiOutlinedInput-root': { borderRadius: 1.5 },
+                      "& .MuiOutlinedInput-root": { borderRadius: 1.5 },
                     }}
                   />
                 </Grid>
@@ -327,10 +366,21 @@ export default function CreateInvoice() {
 
               {/* Categories */}
               <Box mb={3}>
-                <Typography fontWeight={700} mb={1.5} variant="subtitle2" color="text.primary">
+                <Typography
+                  fontWeight={700}
+                  mb={1.5}
+                  variant="subtitle2"
+                  color="text.primary"
+                >
                   Categories
                 </Typography>
-                <Stack direction="row" spacing={1} overflow="auto" pb={1} sx={{ '::-webkit-scrollbar': { height: 6 } }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  overflow="auto"
+                  pb={1}
+                  sx={{ "::-webkit-scrollbar": { height: 6 } }}
+                >
                   <Chip
                     label="All"
                     onClick={() => setSelectedCategory("All")}
@@ -343,15 +393,25 @@ export default function CreateInvoice() {
                       key={cat.uuid || cat._id}
                       label={cat.name}
                       onClick={() => setSelectedCategory(cat.uuid || cat._id)}
-                      color={selectedCategory === (cat.uuid || cat._id) ? "primary" : "default"}
-                      variant={selectedCategory === (cat.uuid || cat._id) ? "filled" : "outlined"}
+                      color={
+                        selectedCategory === (cat.uuid || cat._id)
+                          ? "primary"
+                          : "default"
+                      }
+                      variant={
+                        selectedCategory === (cat.uuid || cat._id)
+                          ? "filled"
+                          : "outlined"
+                      }
                       sx={{ fontWeight: 600, borderRadius: 2 }}
                     />
                   ))}
                 </Stack>
               </Box>
 
-              <Typography fontWeight={700} mb={2} variant="subtitle2">Select Products</Typography>
+              <Typography fontWeight={700} mb={2} variant="subtitle2">
+                Select Products
+              </Typography>
 
               {hasProducts ? (
                 <TableContainer
@@ -360,25 +420,57 @@ export default function CreateInvoice() {
                     borderColor: "divider",
                     mb: 3,
                     borderRadius: 2,
-                    maxHeight: 500
+                    maxHeight: 500,
                   }}
                 >
                   <Table stickyHeader size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50' }}>Item</TableCell>
-                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', width: 100 }}>Price</TableCell>
-                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', textAlign: 'center', width: 140 }}>Qty</TableCell>
-                        <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', textAlign: 'right', width: 100 }}>Total</TableCell>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: "grey.50" }}>
+                          Item
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            bgcolor: "grey.50",
+                            width: 100,
+                          }}
+                        >
+                          Price
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            bgcolor: "grey.50",
+                            textAlign: "center",
+                            width: 140,
+                          }}
+                        >
+                          Qty
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            bgcolor: "grey.50",
+                            textAlign: "right",
+                            width: 100,
+                          }}
+                        >
+                          Total
+                        </TableCell>
                       </TableRow>
                     </TableHead>
 
                     <TableBody>
                       {productsToList.map((product: any) => {
                         // Find if this product is already in the invoice cart
-                        const formItemIndex = items.findIndex(item => item.name === product.name);
+                        const formItemIndex = items.findIndex(
+                          (item) => item.name === product.name,
+                        );
                         const isSelected = formItemIndex !== -1;
-                        const qty = isSelected ? items[formItemIndex].quantity : 0;
+                        const qty = isSelected
+                          ? items[formItemIndex].quantity
+                          : 0;
                         const price = product?.pricing?.[0]?.price || 0;
 
                         const totalPrice = qty * price;
@@ -388,19 +480,22 @@ export default function CreateInvoice() {
                             key={product.uuid || product._id || product.name}
                             hover
                             sx={{
-                              bgcolor: isSelected ? 'primary.lighter' : 'inherit',
-                              '& td': { borderColor: 'divider' }
+                              bgcolor: isSelected
+                                ? "primary.lighter"
+                                : "inherit",
+                              "& td": { borderColor: "divider" },
                             }}
                           >
                             <TableCell>
-                              <Typography variant="body2" fontWeight={isSelected ? 600 : 400}>
+                              <Typography
+                                variant="body2"
+                                fontWeight={isSelected ? 600 : 400}
+                              >
                                 {product.name}
                               </Typography>
                             </TableCell>
 
-                            <TableCell>
-                              {price?.toFixed(2)}
-                            </TableCell>
+                            <TableCell>{price?.toFixed(2)}</TableCell>
 
                             <TableCell align="center">
                               <Stack
@@ -419,17 +514,34 @@ export default function CreateInvoice() {
                                       if (newQty === 0) {
                                         remove(formItemIndex);
                                       } else {
-                                        setValue(`items.${formItemIndex}.quantity`, newQty, { shouldDirty: true });
-                                        setValue(`items.${formItemIndex}.totalPrice`, Number((newQty * price).toFixed(2)), { shouldDirty: true });
+                                        setValue(
+                                          `items.${formItemIndex}.quantity`,
+                                          newQty,
+                                          { shouldDirty: true },
+                                        );
+                                        setValue(
+                                          `items.${formItemIndex}.totalPrice`,
+                                          Number((newQty * price).toFixed(2)),
+                                          { shouldDirty: true },
+                                        );
                                       }
                                     }
                                   }}
-                                  sx={{ border: '1px solid', borderColor: 'divider', p: 0.5 }}
+                                  sx={{
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    p: 0.5,
+                                  }}
                                 >
                                   <Remove fontSize="small" />
                                 </IconButton>
 
-                                <Typography variant="body2" fontWeight={600} width={20} textAlign="center">
+                                <Typography
+                                  variant="body2"
+                                  fontWeight={600}
+                                  width={20}
+                                  textAlign="center"
+                                >
                                   {qty}
                                 </Typography>
 
@@ -439,19 +551,31 @@ export default function CreateInvoice() {
                                   onClick={() => {
                                     if (isSelected) {
                                       const newQty = qty + 1;
-                                      setValue(`items.${formItemIndex}.quantity`, newQty, { shouldDirty: true });
-                                      setValue(`items.${formItemIndex}.totalPrice`, Number((newQty * price).toFixed(2)), { shouldDirty: true });
+                                      setValue(
+                                        `items.${formItemIndex}.quantity`,
+                                        newQty,
+                                        { shouldDirty: true },
+                                      );
+                                      setValue(
+                                        `items.${formItemIndex}.totalPrice`,
+                                        Number((newQty * price).toFixed(2)),
+                                        { shouldDirty: true },
+                                      );
                                     } else {
                                       // Add new item to cart
                                       append({
                                         name: product.name,
                                         quantity: 1,
                                         perUnitPrice: price,
-                                        totalPrice: price
+                                        totalPrice: price,
                                       });
                                     }
                                   }}
-                                  sx={{ border: '1px solid', borderColor: 'divider', p: 0.5 }}
+                                  sx={{
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    p: 0.5,
+                                  }}
                                 >
                                   <Add fontSize="small" />
                                 </IconButton>
@@ -459,7 +583,10 @@ export default function CreateInvoice() {
                             </TableCell>
 
                             <TableCell align="right">
-                              <Typography variant="body2" fontWeight={isSelected ? 700 : 400}>
+                              <Typography
+                                variant="body2"
+                                fontWeight={isSelected ? 700 : 400}
+                              >
                                 {totalPrice.toFixed(2)}
                               </Typography>
                             </TableCell>
@@ -470,8 +597,16 @@ export default function CreateInvoice() {
                   </Table>
                 </TableContainer>
               ) : (
-                <Box bgcolor="grey.50" p={3} borderRadius={2} textAlign="center" mb={3}>
-                  <Typography fontWeight={600} color="text.secondary">No items found in this category.</Typography>
+                <Box
+                  bgcolor="grey.50"
+                  p={3}
+                  borderRadius={2}
+                  textAlign="center"
+                  mb={3}
+                >
+                  <Typography fontWeight={600} color="text.secondary">
+                    No items found in this category.
+                  </Typography>
                 </Box>
               )}
 
@@ -496,7 +631,9 @@ export default function CreateInvoice() {
                           if (num < 0) num = 0;
                           field.onChange(value === "" ? "" : num);
                         }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": { borderRadius: 1.5 },
+                        }}
                       />
                     )}
                   />
@@ -513,18 +650,135 @@ export default function CreateInvoice() {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <FormLabels>Payment Method</FormLabels>
-                  <Select
-                    fullWidth
-                    size="small"
-                    defaultValue="cash"
-                    {...register("paymentMethod")}
-                    sx={{ borderRadius: 1.5 }}
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={1}
                   >
-                    <MenuItem value="cash">Cash</MenuItem>
-                    <MenuItem value="online">Online</MenuItem>
-                    <MenuItem value="card">Card</MenuItem>
-                  </Select>
+                    <FormLabels>Payment Methods & Splits</FormLabels>
+                    <ThemeButton
+                      size="small"
+                      variant="outlined"
+                      onClick={() =>
+                        appendPayment({ method: "cash", amount: 0 })
+                      }
+                      startIcon={<Add />}
+                      buttonStyle={{ borderRadius: 2, padding: "4px 8px" }}
+                    >
+                      Add Split
+                    </ThemeButton>
+                  </Stack>
+
+                  {paymentFields.map((field, index) => (
+                    <Stack
+                      direction="row"
+                      spacing={2}
+                      key={field.id}
+                      alignItems="flex-start"
+                      mb={2}
+                    >
+                      <Box flex={1}>
+                        <Controller
+                          control={control}
+                          name={`payments.${index}.method`}
+                          render={({ field: selectField }) => (
+                            <Select
+                              {...selectField}
+                              fullWidth
+                              size="small"
+                              sx={{ borderRadius: 1.5 }}
+                            >
+                              <MenuItem value="cash">Cash</MenuItem>
+                              <MenuItem value="online">Online</MenuItem>
+                              <MenuItem value="card">Card</MenuItem>
+                            </Select>
+                          )}
+                        />
+                      </Box>
+                      <Box flex={1}>
+                        <Controller
+                          control={control}
+                          name={`payments.${index}.amount`}
+                          render={({
+                            field: inputField,
+                            fieldState: { error },
+                          }) => (
+                            <TextField
+                              {...inputField}
+                              size="small"
+                              fullWidth
+                              placeholder="Amount"
+                              error={!!error}
+                              helperText={error?.message}
+                              inputProps={{ inputMode: "decimal" }}
+                              onChange={(e) => {
+                                let value = e.target.value.replace(
+                                  /[^0-9.]/g,
+                                  "",
+                                );
+                                inputField.onChange(value);
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: 1.5,
+                                },
+                              }}
+                            />
+                          )}
+                        />
+                      </Box>
+                      {paymentFields.length > 1 && (
+                        <IconButton
+                          color="error"
+                          onClick={() => removePayment(index)}
+                          sx={{
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 1.5,
+                            height: 40,
+                          }}
+                        >
+                          <Remove />
+                        </IconButton>
+                      )}
+                    </Stack>
+                  ))}
+
+                  {(() => {
+                    const currentPayments = watch("payments") || [];
+                    const sum = currentPayments.reduce(
+                      (acc, p) => acc + (Number(p.amount) || 0),
+                      0,
+                    );
+                    const diff = totalAmount - sum;
+                    if (Math.abs(diff) > 0.01) {
+                      return (
+                        <Typography
+                          variant="caption"
+                          color="error"
+                          fontWeight={600}
+                        >
+                          Remaining to pay:{" "}
+                          {diff > 0
+                            ? diff.toFixed(2)
+                            : `Overpaid by ${(-diff).toFixed(2)}`}
+                        </Typography>
+                      );
+                    }
+                    if (totalAmount > 0) {
+                      return (
+                        <Typography
+                          variant="caption"
+                          color="success.main"
+                          fontWeight={600}
+                        >
+                          Payment fully assigned.
+                        </Typography>
+                      );
+                    }
+                    return null;
+                  })()}
                 </Grid>
               </Grid>
 
@@ -536,7 +790,12 @@ export default function CreateInvoice() {
                 size="large"
                 loading={createInvoice?.isPending || isSavingOffline}
                 startIcon={<PrintIcon />}
-                buttonStyle={{ width: "100%", borderRadius: 2, height: 48, fontWeight: 700 }}
+                buttonStyle={{
+                  width: "100%",
+                  borderRadius: 2,
+                  height: 48,
+                  fontWeight: 700,
+                }}
               >
                 Generate Invoice
               </ThemeButton>
@@ -553,21 +812,33 @@ export default function CreateInvoice() {
                 fontFamily: "monospace",
                 position: { lg: "sticky" },
                 top: 24,
-                borderTop: '8px solid',
-                borderTopColor: 'primary.main',
+                borderTop: "8px solid",
+                borderTopColor: "primary.main",
               }}
             >
-              <Typography textAlign="center" fontWeight={900} variant="h5" letterSpacing={2}>
+              <Typography
+                textAlign="center"
+                fontWeight={900}
+                variant="h5"
+                letterSpacing={2}
+              >
                 EA8 AND FLY
               </Typography>
-              <Typography textAlign="center" variant="body2" color="text.secondary" gutterBottom>
+              <Typography
+                textAlign="center"
+                variant="body2"
+                color="text.secondary"
+                gutterBottom
+              >
                 OFFICIAL RECEIPT
               </Typography>
 
               <Box fontSize="12px" mt={3} pb={1} borderBottom="1px dashed #ccc">
                 <Box display="flex" justifyContent="space-between" mb={0.5}>
-                  <span style={{ color: '#666' }}>Date:</span>
-                  <span style={{ fontWeight: 600 }}>{dayjs(watch("date")).format("DD MMM YYYY, hh:mm A")}</span>
+                  <span style={{ color: "#666" }}>Date:</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {dayjs(watch("date")).format("DD MMM YYYY, hh:mm A")}
+                  </span>
                 </Box>
               </Box>
 
@@ -582,7 +853,7 @@ export default function CreateInvoice() {
                   columnGap: 1,
                   fontWeight: 700,
                   fontSize: "11px",
-                  color: '#444'
+                  color: "#444",
                 }}
               >
                 <span>ITEM</span>
@@ -592,8 +863,10 @@ export default function CreateInvoice() {
               </Box>
 
               <Box fontSize="11px" sx={{ minHeight: 100 }}>
-                {items.filter(i => i.quantity > 0).length === 0 && (
-                  <Typography textAlign="center" color="text.disabled" py={4}>No items selected</Typography>
+                {items.filter((i) => i.quantity > 0).length === 0 && (
+                  <Typography textAlign="center" color="text.disabled" py={4}>
+                    No items selected
+                  </Typography>
                 )}
 
                 {items.map(
@@ -606,7 +879,7 @@ export default function CreateInvoice() {
                           gridTemplateColumns: "1fr 40px 70px 70px",
                           columnGap: 1,
                           mb: 1,
-                          alignItems: 'start'
+                          alignItems: "start",
                         }}
                       >
                         <span style={{ fontWeight: 600 }}>{it.name}</span>
@@ -624,19 +897,24 @@ export default function CreateInvoice() {
                 )}
               </Box>
 
-              <Box borderTop="1px solid #1c1b1bff" mt={3} pt={2} fontSize="12px">
+              <Box
+                borderTop="1px solid #1c1b1bff"
+                mt={3}
+                pt={2}
+                fontSize="12px"
+              >
                 <Box display="flex" justifyContent="space-between" mb={1}>
-                  <span style={{ color: '#666' }}>Sub Total</span>
+                  <span style={{ color: "#666" }}>Sub Total</span>
                   <span style={{ fontWeight: 600 }}>{subTotal.toFixed(2)}</span>
                 </Box>
 
                 <Box display="flex" justifyContent="space-between" mb={1}>
-                  <span style={{ color: '#666' }}>Discount ({discount}%)</span>
+                  <span style={{ color: "#666" }}>Discount ({discount}%)</span>
                   <span>-{((subTotal * discount) / 100).toFixed(2)}</span>
                 </Box>
 
                 <Box display="flex" justifyContent="space-between" mb={1}>
-                  <span style={{ color: '#666' }}>Tax (CGST+IGST)</span>
+                  <span style={{ color: "#666" }}>Tax (CGST+IGST)</span>
                   <span>+{gstAmount.toFixed(2)}</span>
                 </Box>
               </Box>
@@ -646,18 +924,25 @@ export default function CreateInvoice() {
                 sx={{
                   mt: 2,
                   p: 2,
-                  color: 'white',
+                  color: "white",
                   borderRadius: 1,
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 <span style={{ fontWeight: 600 }}>GRAND TOTAL</span>
-                <span style={{ fontWeight: 700, fontSize: '18px' }}>₹{totalAmount.toFixed(2)}</span>
+                <span style={{ fontWeight: 700, fontSize: "18px" }}>
+                  ₹{totalAmount.toFixed(2)}
+                </span>
               </Box>
 
-              <Typography textAlign="center" fontSize="10px" color="text.secondary" mt={3}>
+              <Typography
+                textAlign="center"
+                fontSize="10px"
+                color="text.secondary"
+                mt={3}
+              >
                 Thank you for your business!
               </Typography>
             </Paper>
