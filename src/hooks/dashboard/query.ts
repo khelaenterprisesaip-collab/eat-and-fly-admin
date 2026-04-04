@@ -7,7 +7,7 @@ export const useGetDashboardStats = ({ query }: any) =>
       "dashboardStats",
       query?.startDate,
       query?.endDate,
-      query?.paymentMethod,
+      query?.airport,
     ],
     queryFn: () =>
       getDashboardStats({

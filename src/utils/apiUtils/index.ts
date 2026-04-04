@@ -53,11 +53,11 @@ export const makeUrl = ({
 }): string => {
   const queryString = query
     ? Object?.keys(query)
-      .map(
-        (key: any) =>
-          `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`,
-      )
-      .join("&")
+        .map(
+          (key: any) =>
+            `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`,
+        )
+        .join("&")
     : "";
   return `${uri
     .split("/")

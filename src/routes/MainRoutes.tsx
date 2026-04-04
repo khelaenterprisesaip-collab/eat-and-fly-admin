@@ -38,6 +38,7 @@ const SamplePage = Loadable(
 );
 
 const CustomerMainPage = Loadable(lazy(() => import("pages/Customer")));
+const DashboardMainPage = Loadable(lazy(() => import("pages/dashboard")));
 const AddCustomer = Loadable(lazy(() => import("pages/Customer/addCustomer")));
 
 const ChassisMainPage = Loadable(lazy(() => import("pages/chassis")));
@@ -70,7 +71,7 @@ const MainRoutes: any = {
       children: [
         {
           path: "/dashboard",
-          element: <SamplePage />,
+          element: <DashboardMainPage />,
         },
       ],
     },
