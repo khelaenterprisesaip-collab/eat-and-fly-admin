@@ -14,6 +14,7 @@ export interface PendingInvoice {
         cgstPercentage: number;
         igstPercentage: number;
         discountPercentage: number;
+        discount?: number;
         discountAmount: number;
         totalAmount: number;
         status: string;

@@ -109,6 +109,7 @@ export default function CreateInvoice() {
   const [isSavingOffline, setIsSavingOffline] = useState(false);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const roundMoney = (value: number) => Number(Number(value || 0).toFixed(2));
 
   const { data: categoryData } = useGetCategory({
     query: { viewSize: 1000 },
@@ -195,20 +196,24 @@ export default function CreateInvoice() {
 
   const cgst = Number(watch("cgst") || 0);
   const igst = Number(watch("igst") || 0);
+  const taxRate = cgst + igst;
 
-  const subTotal = items.reduce(
-    (sum, it) => sum + it.quantity * it.perUnitPrice,
-    0,
+  // Product prices are GST-inclusive, so back-calculate the taxable subtotal
+  // before applying discount and tax again.
+  const grossSubTotal = roundMoney(
+    items.reduce((sum, it) => sum + it.quantity * it.perUnitPrice, 0),
   );
+  const gstFactor = taxRate > 0 ? 1 + taxRate / 100 : 1;
+  const subTotal = roundMoney(grossSubTotal / gstFactor);
 
   // percentage discount
-  const discountAmount = (subTotal * discount) / 100;
+  const discountAmount = roundMoney((subTotal * discount) / 100);
 
-  const taxableAmount = Math.max(subTotal - discountAmount, 0);
+  const taxableAmount = roundMoney(Math.max(subTotal - discountAmount, 0));
 
-  const gstAmount = (taxableAmount * (cgst + igst)) / 100;
+  const gstAmount = roundMoney((taxableAmount * taxRate) / 100);
 
-  const totalAmount = taxableAmount + gstAmount;
+  const totalAmount = roundMoney(taxableAmount + gstAmount);
 
   useEffect(() => {
     setValue("subTotal", subTotal);
@@ -246,11 +251,21 @@ export default function CreateInvoice() {
       cgstPercentage: cgst,
       igstPercentage: igst,
       discountPercentage: discount,
+      discount: discountAmount,
       discountAmount,
       totalAmount: data.totalAmount,
       status: "paid",
-      items: data.items.filter((x) => x.quantity > 0),
-      payments: data.payments,
+      items: data.items
+        .filter((x) => x.quantity > 0)
+        .map((item) => ({
+          ...item,
+          perUnitPrice: roundMoney(item.perUnitPrice),
+          totalPrice: roundMoney(item.totalPrice),
+        })),
+      payments: data.payments.map((payment) => ({
+        ...payment,
+        amount: roundMoney(payment.amount),
+      })),
     };
 
     // Handle offline case - save to localStorage
@@ -472,9 +487,9 @@ export default function CreateInvoice() {
                         const qty = isSelected
                           ? items[formItemIndex].quantity
                           : 0;
-                        const price = product?.pricing?.[0]?.price || 0;
+                        const price = roundMoney(product?.pricing?.[0]?.price || 0);
 
-                        const totalPrice = qty * price;
+                        const totalPrice = roundMoney(qty * price);
 
                         return (
                           <TableRow
@@ -522,7 +537,7 @@ export default function CreateInvoice() {
                                         );
                                         setValue(
                                           `items.${formItemIndex}.totalPrice`,
-                                          Number((newQty * price).toFixed(2)),
+                                          roundMoney(newQty * price),
                                           { shouldDirty: true },
                                         );
                                       }
@@ -559,7 +574,7 @@ export default function CreateInvoice() {
                                       );
                                       setValue(
                                         `items.${formItemIndex}.totalPrice`,
-                                        Number((newQty * price).toFixed(2)),
+                                        roundMoney(newQty * price),
                                         { shouldDirty: true },
                                       );
                                     } else {
