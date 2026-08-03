@@ -49,7 +49,7 @@ const InvoiceStateTable = ({ value, searchText, drawer, setDrawer }: any) => {
   // ✅ Renamed state
   const [selectedInvoice, setSelectedInvoice] = useState<any>({ id: "" });
 
-  const [startIndex, setStartIndex] = useState(1);
+  const [startIndex, setStartIndex] = useState(0);
   const [viewPage, setViewPage] = useState(10);
   const [statusLoading, setStatusLoading] = useState(false);
   const [pdfModal, setPdfModal] = useState({ visible: false, url: "" });
