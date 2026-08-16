@@ -128,6 +128,8 @@ export const FilterBar = ({
             <MenuItem value="amritsar">Amritsar</MenuItem>
             <MenuItem value="jalandhar">Jalandhar</MenuItem>
             <MenuItem value="ludhiana">Ludhiana</MenuItem>
+            <MenuItem value="ghaziabad">Ghaziabad</MenuItem>
+            <MenuItem value="jaisalmer">Jaisalmer</MenuItem>
           </Select>
         </FormControl>
       </div>
